@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Смайли</title>
     <style>
-        /* ФИКСИРОВАННАЯ ВЕРСТКА ПОД ТЕЛЕФОН 9:16 */
+        /* ФИКСИРОВАННАЯ ВЕРСТКА 400x800px */
         * {
             margin: 0;
             padding: 0;
@@ -21,10 +21,22 @@
             height: 100dvh;
             overflow: hidden;
             position: fixed;
-            touch-action: none;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             font-family: -apple-system, BlinkMacSystemFont, sans-serif;
             color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        /* ОСНОВНОЙ КОНТЕЙНЕР 400x800px */
+        #app {
+            width: 400px;
+            height: 800px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            border-radius: 0;
         }
         
         /* ЭКРАНЫ */
@@ -32,17 +44,14 @@
             position: absolute;
             top: 0;
             left: 0;
-            width: 100vw;
-            height: 100vh;
-            height: 100dvh;
+            width: 400px;
+            height: 800px;
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
             transition: opacity 0.3s;
             z-index: 100;
-            padding-top: env(safe-area-inset-top);
-            padding-bottom: env(safe-area-inset-bottom);
         }
         
         .start-screen {
@@ -65,9 +74,9 @@
         
         /* ЗАГОЛОВОК */
         .title {
-            font-size: 3.5rem;
-            margin-bottom: 1rem;
-            text-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+            font-size: 3.2rem;
+            margin-bottom: 0.8rem;
+            text-shadow: 0 3px 8px rgba(0, 0, 0, 0.3);
             background: linear-gradient(45deg, #FFD700, #FFA500);
             -webkit-background-clip: text;
             background-clip: text;
@@ -77,11 +86,12 @@
         }
         
         .subtitle {
-            font-size: 1.2rem;
+            font-size: 1.1rem;
             margin-bottom: 2rem;
             opacity: 0.9;
             text-align: center;
-            padding: 0 1rem;
+            padding: 0 1.5rem;
+            line-height: 1.4;
         }
         
         /* КНОПКИ */
@@ -104,14 +114,14 @@
             transform: scale(0.95);
         }
         
-        /* ШАПКА ИГРЫ - ФИКСИРОВАННЫЙ РАЗМЕР */
+        /* ШАПКА ИГРЫ - ФИКСИРОВАННАЯ */
         .game-header {
             position: absolute;
             top: 0;
             left: 0;
-            width: 100vw;
-            height: 70px;
-            background: rgba(0, 0, 0, 0.5);
+            width: 400px;
+            height: 80px;
+            background: rgba(0, 0, 0, 0.6);
             backdrop-filter: blur(20px);
             -webkit-backdrop-filter: blur(20px);
             display: flex;
@@ -119,7 +129,7 @@
             align-items: center;
             padding: 0 1.5rem;
             z-index: 90;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            border-bottom: 2px solid rgba(255, 255, 255, 0.2);
         }
         
         .score-container, .next-container {
@@ -144,20 +154,32 @@
             font-size: 2.5rem;
         }
         
-        /* ИГРОВОЕ ПОЛЕ - ФИКСИРОВАННЫЙ РАЗМЕР */
+        /* ИГРОВОЕ ПОЛЕ С ФИКСИРОВАННЫМ ПОЛОМ */
         #gameContainer {
             position: absolute;
-            top: 70px;
+            top: 80px;
             left: 0;
-            width: 100vw;
-            height: calc(100vh - 70px);
-            height: calc(100dvh - 70px);
+            width: 400px;
+            height: 720px; /* 800 - 80 = 720 */
             z-index: 50;
             overflow: hidden;
-            background: linear-gradient(to bottom, rgba(0,0,0,0.1), rgba(0,0,0,0.2));
+            background: linear-gradient(to bottom, rgba(0,0,0,0.15), rgba(0,0,0,0.25));
         }
         
-        /* СМАЙЛИКИ - С РАЗНЫМИ УГЛАМИ ПАДЕНИЯ */
+        /* ПОЛ (земля) - ФИКСИРОВАННЫЙ */
+        .floor {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 400px;
+            height: 30px;
+            background: linear-gradient(to top, rgba(139, 69, 19, 0.8), rgba(160, 82, 45, 0.9));
+            z-index: 40;
+            border-top: 3px solid rgba(210, 105, 30, 0.8);
+            box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.3);
+        }
+        
+        /* СМАЙЛИКИ */
         .emoji {
             position: absolute;
             z-index: 10;
@@ -181,8 +203,7 @@
             border-radius: 25px;
             padding: 2rem 1.5rem;
             text-align: center;
-            width: 85vw;
-            max-width: 320px;
+            width: 320px;
             border: 1px solid rgba(255, 255, 255, 0.2);
             box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
         }
@@ -195,21 +216,10 @@
             text-shadow: 0 2px 8px rgba(0,0,0,0.5);
         }
         
-        /* АНИМАЦИИ */
-        @keyframes merge {
-            0% { transform: translate(-50%, -50%) scale(1); }
-            50% { transform: translate(-50%, -50%) scale(1.8); }
-            100% { transform: translate(-50%, -50%) scale(1); }
-        }
-        
-        .merge-animation {
-            animation: merge 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        }
-        
         /* ПОДСКАЗКА */
         .tap-hint {
             position: absolute;
-            bottom: 6rem;
+            bottom: 120px;
             font-size: 1.4rem;
             font-weight: bold;
             color: #FFD700;
@@ -224,67 +234,84 @@
             50% { opacity: 1; }
             100% { opacity: 0.4; }
         }
+        
+        /* АНИМАЦИЯ СЛИЯНИЯ */
+        @keyframes merge {
+            0% { transform: translate(-50%, -50%) scale(1); }
+            50% { transform: translate(-50%, -50%) scale(1.8); }
+            100% { transform: translate(-50%, -50%) scale(1); }
+        }
+        
+        .merge-animation {
+            animation: merge 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
     </style>
 </head>
 <body>
-    <!-- Стартовый экран -->
-    <div class="screen start-screen" id="startScreen">
-        <h1 class="title">СМАЙЛИ</h1>
-        <p class="subtitle">Бросай, катай, собирай!</p>
-        <button class="btn" id="startBtn">ИГРАТЬ</button>
-        <div class="tap-hint" id="tapHint">👇 ТАПАЙ СВЕРХУ 👇</div>
-    </div>
-    
-    <!-- Игровой экран -->
-    <div class="screen game-screen" id="gameScreen">
-        <div class="game-header">
-            <div class="score-container">
-                <div class="score-label">ОЧКИ</div>
-                <div class="score-value" id="scoreValue">0</div>
+    <div id="app">
+        <!-- Стартовый экран -->
+        <div class="screen start-screen" id="startScreen">
+            <h1 class="title">СМАЙЛИ</h1>
+            <p class="subtitle">Бросай, катай, собирай комбо!</p>
+            <button class="btn" id="startBtn">ИГРАТЬ</button>
+            <div class="tap-hint" id="tapHint">👇 ТАПАЙ СВЕРХУ 👇</div>
+        </div>
+        
+        <!-- Игровой экран -->
+        <div class="screen game-screen" id="gameScreen">
+            <div class="game-header">
+                <div class="score-container">
+                    <div class="score-label">ОЧКИ</div>
+                    <div class="score-value" id="scoreValue">0</div>
+                </div>
+                <div class="next-container">
+                    <div class="next-label">СЛЕДУЮЩИЙ</div>
+                    <div class="next-emoji" id="nextEmoji">😊</div>
+                </div>
             </div>
-            <div class="next-container">
-                <div class="next-label">СЛЕДУЮЩИЙ</div>
-                <div class="next-emoji" id="nextEmoji">😊</div>
+            
+            <div id="gameContainer">
+                <div class="floor"></div>
             </div>
         </div>
         
-        <div id="gameContainer"></div>
-    </div>
-    
-    <!-- Экран завершения -->
-    <div class="screen game-over-screen" id="gameOverScreen">
-        <div class="game-over-content">
-            <h2 style="font-size: 1.8rem; margin-bottom: 1rem;">ИГРА ОКОНЧЕНА!</h2>
-            <div class="final-score" id="finalScore">0</div>
-            <p style="opacity: 0.8; margin-bottom: 1.5rem;">Твой результат</p>
-            <button class="btn" id="playAgainBtn">ИГРАТЬ СНОВА</button>
+        <!-- Экран завершения -->
+        <div class="screen game-over-screen" id="gameOverScreen">
+            <div class="game-over-content">
+                <h2 style="font-size: 1.8rem; margin-bottom: 1rem;">ИГРА ОКОНЧЕНА!</h2>
+                <div class="final-score" id="finalScore">0</div>
+                <p style="opacity: 0.8; margin-bottom: 1.5rem;">Твой результат</p>
+                <button class="btn" id="playAgainBtn">ИГРАТЬ СНОВА</button>
+            </div>
         </div>
     </div>
 
     <script>
         // ================= КОНФИГУРАЦИЯ =================
         const EMOJI_LEVELS = ["😊", "😎", "🥳", "🤩", "🤑", "🤯", "👑"];
-        
-        // ГРАДАЦИЯ РАЗМЕРОВ - БОЛЬШАЯ РАЗНИЦА!
-        const EMOJI_SIZES = [45, 70, 100, 140, 190, 250, 320];
-        
-        // ОЧКИ ЗА КАЖДЫЙ УРОВЕНЬ
+        const EMOJI_SIZES = [35, 55, 80, 115, 160, 220, 300];
         const POINTS_PER_LEVEL = [10, 40, 120, 350, 1000, 3000, 9000];
+        
+        const SCREEN_WIDTH = 400;
+        const SCREEN_HEIGHT = 800;
+        const HEADER_HEIGHT = 80;
+        const FLOOR_HEIGHT = 30;
+        const GAME_HEIGHT = SCREEN_HEIGHT - HEADER_HEIGHT;
+        const FLOOR_Y = GAME_HEIGHT - FLOOR_HEIGHT;
         
         // ================= СОСТОЯНИЕ ИГРЫ =================
         let gameState = {
-            emojis: [],        // Массив физических объектов
-            nextEmoji: 1,      // Уровень следующего смайлика (1-7)
-            score: 0,          // Текущие очки
-            gameOver: false,   // Игра окончена?
-            physicsRunning: false, // Физика активна?
-            lastUpdateTime: 0, // Время последнего обновления
-            
-            // Физические константы
-            gravity: 0.8,
-            friction: 0.95,
-            bounce: 0.6,
-            maxEmojis: 50
+            emojis: [],
+            nextEmoji: 1,
+            score: 0,
+            gameOver: false,
+            physicsRunning: false,
+            moves: 0,
+            gravity: 0.6, // Меньше гравитация
+            friction: 0.95, // Меньше трение
+            bounce: 0.5,
+            lastEmojiType: 0,
+            emojiSequence: 0
         };
         
         // ================= ДОМ-ЭЛЕМЕНТЫ =================
@@ -306,7 +333,6 @@
             document.getElementById('startBtn').addEventListener('click', startGame);
             document.getElementById('playAgainBtn').addEventListener('click', startGame);
             
-            // Обработка тапов - бросаем смайлики ПОД ШАПКОЙ
             gameContainer.addEventListener('click', handleGameTap);
             gameContainer.addEventListener('touchstart', handleGameTouch, { passive: false });
         }
@@ -317,7 +343,6 @@
             resetGame();
             clearGameContainer();
             
-            // Переключаем экраны
             startScreen.style.opacity = '0';
             startScreen.style.pointerEvents = 'none';
             gameOverScreen.style.opacity = '0';
@@ -327,7 +352,7 @@
                 gameScreen.style.opacity = '1';
                 gameScreen.style.pointerEvents = 'auto';
                 gameState.physicsRunning = true;
-                startPhysicsLoop();
+                requestAnimationFrame(physicsLoop);
             }, 300);
         }
         
@@ -338,27 +363,53 @@
                 score: 0,
                 gameOver: false,
                 physicsRunning: false,
-                lastUpdateTime: 0,
-                gravity: 0.8,
+                moves: 0,
+                gravity: 0.6,
                 friction: 0.95,
-                bounce: 0.6,
-                maxEmojis: 50
+                bounce: 0.5,
+                lastEmojiType: 0,
+                emojiSequence: 0
             };
             
             updateUI();
         }
         
         function clearGameContainer() {
+            const floor = gameContainer.querySelector('.floor');
             gameContainer.innerHTML = '';
+            if (floor) gameContainer.appendChild(floor);
         }
         
         function getRandomEmojiLevel() {
-            const r = Math.random();
-            // 70% - уровень 1, 20% - уровень 2, 7% - уровень 3, 3% - уровень 4
-            if (r < 0.7) return 1;
-            if (r < 0.9) return 2;
-            if (r < 0.97) return 3;
-            return 4;
+            let level;
+            let attempts = 0;
+            
+            do {
+                const r = Math.random();
+                if (r < 0.5) level = 1;
+                else if (r < 0.75) level = 2;
+                else if (r < 0.9) level = 3;
+                else if (r < 0.97) level = 4;
+                else if (r < 0.99) level = 5;
+                else level = 6;
+                
+                attempts++;
+                
+                if (attempts > 3) {
+                    level = (level % 6) + 1;
+                    break;
+                }
+                
+            } while (level === gameState.lastEmojiType && gameState.emojiSequence >= 2);
+            
+            if (level === gameState.lastEmojiType) {
+                gameState.emojiSequence++;
+            } else {
+                gameState.lastEmojiType = level;
+                gameState.emojiSequence = 1;
+            }
+            
+            return level;
         }
         
         // ================= ОБРАБОТКА ТАПОВ =================
@@ -367,12 +418,11 @@
             if (gameState.gameOver || !gameState.physicsRunning) return;
             
             const rect = gameContainer.getBoundingClientRect();
-            const x = e.clientX;
+            const x = Math.max(20, Math.min(e.clientX - rect.left, 380));
             
-            // Бросаем смайлик сразу под шапкой (70px от верха экрана)
-            const startY = rect.top + 10;
-            
-            createEmojiAt(x, startY);
+            // ПАДАЕМ НИЖЕ - со 150px вместо 40px
+            createEmojiAt(x, 150);
+            gameState.moves++;
         }
         
         function handleGameTouch(e) {
@@ -381,10 +431,10 @@
             
             const touch = e.touches[0];
             const rect = gameContainer.getBoundingClientRect();
-            const x = touch.clientX;
-            const startY = rect.top + 10;
+            const x = Math.max(20, Math.min(touch.clientX - rect.left, 380));
             
-            createEmojiAt(x, startY);
+            createEmojiAt(x, 150);
+            gameState.moves++;
         }
         
         // ================= СОЗДАНИЕ СМАЙЛИКА =================
@@ -392,11 +442,8 @@
         function createEmojiAt(x, startY) {
             const level = gameState.nextEmoji;
             const size = EMOJI_SIZES[level - 1];
+            const radius = size / 2;
             
-            // Случайный наклон при падении (-30 до 30 градусов)
-            const rotation = (Math.random() - 0.5) * 60;
-            
-            // Создаем DOM элемент
             const emojiEl = document.createElement('div');
             emojiEl.className = 'emoji';
             emojiEl.textContent = EMOJI_LEVELS[level - 1];
@@ -406,18 +453,15 @@
             emojiEl.style.lineHeight = `${size}px`;
             emojiEl.style.left = `${x}px`;
             emojiEl.style.top = `${startY}px`;
-            emojiEl.style.transform = `translate(-50%, -50%) rotate(${rotation}deg)`;
+            emojiEl.style.transform = `translate(-50%, -50%) rotate(0deg)`;
             
-            // Применяем стили для уровня
             applyEmojiStyles(emojiEl, level);
-            
             gameContainer.appendChild(emojiEl);
             
-            // Случайная скорость (не слишком сильная)
-            const vx = (Math.random() - 0.5) * 6;
-            const vy = 2 + Math.random() * 3;
+            // МЕНЬШЕ НАЧАЛЬНОЙ СКОРОСТИ
+            const vx = (Math.random() - 0.5) * 2;
+            const vy = 1 + Math.random() * 1;
             
-            // Создаем физический объект
             const physicsEmoji = {
                 element: emojiEl,
                 level: level,
@@ -425,170 +469,257 @@
                 y: startY,
                 vx: vx,
                 vy: vy,
-                radius: size / 2,
+                radius: radius,
                 size: size,
-                rotation: rotation,
-                rotationSpeed: (Math.random() - 0.5) * 10,
+                rotation: 0,
+                rotationSpeed: (Math.random() - 0.5) * 3,
                 merged: false,
-                id: Date.now() + Math.random()
+                id: Date.now() + Math.random(),
+                settled: false,
+                onFloor: false,
+                settledTimer: 0,
+                left: x - radius,
+                right: x + radius,
+                top: startY - radius,
+                bottom: startY + radius
             };
             
             gameState.emojis.push(physicsEmoji);
-            
-            // Генерируем следующий эмодзи
             gameState.nextEmoji = getRandomEmojiLevel();
-            
             updateUI();
         }
         
         function applyEmojiStyles(element, level) {
-            // Базовые стили
             element.style.color = 'white';
             element.style.textShadow = '0 3px 6px rgba(0,0,0,0.7)';
             
-            // ЯРКИЕ ЭФФЕКТЫ ДЛЯ ВЫСОКИХ УРОВНЕЙ
             switch(level) {
-                case 4: // 🤩
-                    element.style.filter = 'drop-shadow(0 0 20px gold) brightness(1.1)';
+                case 4:
+                    element.style.filter = 'drop-shadow(0 0 18px gold) brightness(1.1)';
                     element.style.textShadow = '0 0 25px gold, 0 3px 8px rgba(0,0,0,0.7)';
                     break;
-                case 5: // 🤑
-                    element.style.filter = 'drop-shadow(0 0 25px orange) brightness(1.2)';
+                case 5:
+                    element.style.filter = 'drop-shadow(0 0 22px orange) brightness(1.2)';
                     element.style.textShadow = '0 0 30px orange, 0 0 15px gold, 0 3px 8px rgba(0,0,0,0.7)';
                     break;
-                case 6: // 🤯
-                    element.style.filter = 'drop-shadow(0 0 30px red) brightness(1.3)';
+                case 6:
+                    element.style.filter = 'drop-shadow(0 0 28px red) brightness(1.3)';
                     element.style.textShadow = '0 0 35px red, 0 0 20px orange, 0 3px 8px rgba(0,0,0,0.7)';
                     break;
-                case 7: // 👑 - ОГРОМНЫЙ И ЯРКИЙ!
-                    element.style.filter = 'drop-shadow(0 0 40px gold) brightness(1.4)';
+                case 7:
+                    element.style.filter = 'drop-shadow(0 0 35px gold) brightness(1.4)';
                     element.style.textShadow = '0 0 45px gold, 0 0 25px white, 0 3px 8px rgba(0,0,0,0.7)';
                     break;
             }
         }
         
-        // ================= ФИЗИЧЕСКИЙ ДВИЖОК =================
+        // ================= ФИЗИКА =================
         
-        function startPhysicsLoop() {
-            function update(currentTime) {
-                if (!gameState.physicsRunning || gameState.gameOver) {
-                    requestAnimationFrame(update);
-                    return;
+        let lastTime = 0;
+        function physicsLoop(timestamp) {
+            if (!gameState.physicsRunning || gameState.gameOver) {
+                if (gameState.physicsRunning) {
+                    requestAnimationFrame(physicsLoop);
                 }
-                
-                const deltaTime = gameState.lastUpdateTime ? 
-                    Math.min((currentTime - gameState.lastUpdateTime) / 16.67, 2) : 1;
-                gameState.lastUpdateTime = currentTime;
-                
-                updatePhysics(deltaTime);
-                checkCollisions();
-                checkMerges();
-                
-                // Проверяем конец игры раз в 30 кадров (≈0.5 сек)
-                if (currentTime % 500 < 16) {
-                    checkGameOver();
-                }
-                
-                requestAnimationFrame(update);
+                return;
             }
             
-            gameState.lastUpdateTime = performance.now();
-            requestAnimationFrame(update);
+            const deltaTime = lastTime ? Math.min((timestamp - lastTime) / 16.67, 2) : 1;
+            lastTime = timestamp;
+            
+            // Обновляем физику
+            updatePhysics(deltaTime);
+            
+            // Разрешаем столкновения несколько раз
+            for (let i = 0; i < 2; i++) {
+                resolveCollisions();
+            }
+            
+            // Проверяем стабильность
+            checkStability(deltaTime);
+            
+            // Проверяем слияния
+            checkMerges();
+            
+            // Проверяем конец игры
+            checkGameOver();
+            
+            requestAnimationFrame(physicsLoop);
         }
         
         function updatePhysics(deltaTime) {
-            const containerRect = gameContainer.getBoundingClientRect();
-            const floorY = containerRect.bottom - 10;
+            const floorY = FLOOR_Y;
             
-            // Обновляем каждый эмодзи
             for (let i = 0; i < gameState.emojis.length; i++) {
                 const emoji = gameState.emojis[i];
-                if (emoji.merged) continue;
+                if (emoji.merged || emoji.settled) continue;
                 
-                // Гравитация - ПЛАВНОЕ падение
+                // Гравитация
                 emoji.vy += gameState.gravity * deltaTime;
                 
-                // Трение (только когда на земле)
-                const isOnGround = emoji.y + emoji.radius >= floorY - 2;
-                if (isOnGround) {
-                    emoji.vx *= Math.pow(gameState.friction, deltaTime);
-                    emoji.vy *= 0.8; // Быстрое затухание при ударе о пол
-                    if (Math.abs(emoji.vx) < 0.2) emoji.vx = 0;
-                    if (Math.abs(emoji.vy) < 0.5) emoji.vy = 0;
-                    emoji.rotationSpeed *= 0.9;
+                // Трение
+                emoji.vx *= Math.pow(gameState.friction, deltaTime);
+                
+                // Новая позиция
+                let newX = emoji.x + emoji.vx * deltaTime;
+                let newY = emoji.y + emoji.vy * deltaTime;
+                
+                // Границы экрана
+                if (newX - emoji.radius < 0) {
+                    newX = emoji.radius;
+                    emoji.vx = Math.abs(emoji.vx) * gameState.bounce;
+                }
+                if (newX + emoji.radius > SCREEN_WIDTH) {
+                    newX = SCREEN_WIDTH - emoji.radius;
+                    emoji.vx = -Math.abs(emoji.vx) * gameState.bounce;
+                }
+                
+                // ЖЕСТКОЕ ОГРАНИЧЕНИЕ ПОЛА
+                if (newY + emoji.radius > floorY) {
+                    newY = floorY - emoji.radius;
+                    
+                    if (Math.abs(emoji.vy) > 0.5) {
+                        emoji.vy = -Math.abs(emoji.vy) * gameState.bounce * 0.7;
+                    } else {
+                        emoji.vy = 0;
+                        emoji.onFloor = true;
+                    }
+                    
+                    emoji.vx *= 0.9;
+                    emoji.rotationSpeed *= 0.5;
                 }
                 
                 // Обновляем позицию
-                emoji.x += emoji.vx * deltaTime;
-                emoji.y += emoji.vy * deltaTime;
+                emoji.x = newX;
+                emoji.y = newY;
                 
                 // Вращение
                 emoji.rotation += emoji.rotationSpeed * deltaTime;
                 
-                // Границы экрана по X
-                const leftBound = containerRect.left + emoji.radius;
-                const rightBound = containerRect.right - emoji.radius;
+                // Обновляем границы
+                updateEmojiBounds(emoji);
                 
-                if (emoji.x < leftBound) {
-                    emoji.x = leftBound;
-                    emoji.vx = Math.abs(emoji.vx) * gameState.bounce;
-                    emoji.rotationSpeed = -emoji.rotationSpeed * 0.8;
-                }
-                if (emoji.x > rightBound) {
-                    emoji.x = rightBound;
-                    emoji.vx = -Math.abs(emoji.vx) * gameState.bounce;
-                    emoji.rotationSpeed = -emoji.rotationSpeed * 0.8;
-                }
-                
-                // Пол - отскок
-                if (emoji.y + emoji.radius > floorY) {
-                    emoji.y = floorY - emoji.radius;
-                    emoji.vy = -Math.abs(emoji.vy) * gameState.bounce;
-                    
-                    // Добавляем случайный поворот при ударе
-                    emoji.rotationSpeed += (Math.random() - 0.5) * 20;
-                }
-                
-                // Обновляем позицию и вращение на экране
+                // Обновляем DOM
                 emoji.element.style.left = `${emoji.x}px`;
                 emoji.element.style.top = `${emoji.y}px`;
                 emoji.element.style.transform = `translate(-50%, -50%) rotate(${emoji.rotation}deg)`;
             }
         }
         
-        function checkCollisions() {
-            // Проверяем столкновения всех пар смайликов
-            for (let i = 0; i < gameState.emojis.length; i++) {
-                const a = gameState.emojis[i];
-                if (a.merged) continue;
+        function updateEmojiBounds(emoji) {
+            emoji.left = emoji.x - emoji.radius;
+            emoji.right = emoji.x + emoji.radius;
+            emoji.top = emoji.y - emoji.radius;
+            emoji.bottom = emoji.y + emoji.radius;
+        }
+        
+        function resolveCollisions() {
+            const activeEmojis = gameState.emojis.filter(e => !e.merged);
+            
+            for (let i = 0; i < activeEmojis.length; i++) {
+                const a = activeEmojis[i];
                 
-                for (let j = i + 1; j < gameState.emojis.length; j++) {
-                    const b = gameState.emojis[j];
-                    if (b.merged) continue;
+                for (let j = i + 1; j < activeEmojis.length; j++) {
+                    const b = activeEmojis[j];
                     
+                    // Проверяем пересечение
                     const dx = a.x - b.x;
                     const dy = a.y - b.y;
                     const distance = Math.sqrt(dx * dx + dy * dy);
                     const minDistance = a.radius + b.radius;
                     
-                    // Если смайлики пересекаются
                     if (distance < minDistance && distance > 0) {
-                        // Разрешаем коллизию - отталкиваем
-                        const angle = Math.atan2(dy, dx);
-                        const overlap = (minDistance - distance) / 2;
+                        // Нормаль столкновения
+                        const nx = dx / distance;
+                        const ny = dy / distance;
                         
-                        a.x += Math.cos(angle) * overlap * 1.5;
-                        a.y += Math.sin(angle) * overlap * 1.5;
-                        b.x -= Math.cos(angle) * overlap * 1.5;
-                        b.y -= Math.sin(angle) * overlap * 1.5;
+                        // Глубина проникновения
+                        const penetration = minDistance - distance;
                         
-                        // Эффект скатывания - если один выше другого
-                        if (a.y < b.y) {
-                            a.vx += (b.x - a.x) * 0.05;
+                        // РАЗДЕЛЯЕМ СМАЙЛИКИ
+                        const separation = penetration;
+                        
+                        // Выбираем как разделять
+                        if (a.settled && b.settled) {
+                            // Оба устоялись - корректируем оба немного
+                            a.x += nx * separation * 0.3;
+                            a.y += ny * separation * 0.3;
+                            b.x -= nx * separation * 0.3;
+                            b.y -= ny * separation * 0.3;
+                        } else if (a.settled) {
+                            // a устоялся, двигаем только b
+                            b.x -= nx * separation * 0.8;
+                            b.y -= ny * separation * 0.8;
+                        } else if (b.settled) {
+                            // b устоялся, двигаем только a
+                            a.x += nx * separation * 0.8;
+                            a.y += ny * separation * 0.8;
                         } else {
-                            b.vx += (a.x - b.x) * 0.05;
+                            // Оба падают - двигаем оба
+                            a.x += nx * separation * 0.5;
+                            a.y += ny * separation * 0.5;
+                            b.x -= nx * separation * 0.5;
+                            b.y -= ny * separation * 0.5;
                         }
+                        
+                        // Физика удара
+                        if (!a.settled && !b.settled) {
+                            const rvx = b.vx - a.vx;
+                            const rvy = b.vy - a.vy;
+                            const velocityAlongNormal = rvx * nx + rvy * ny;
+                            
+                            if (velocityAlongNormal < 0) {
+                                const impulse = -velocityAlongNormal * 0.7;
+                                const impulseScalar = impulse / 2;
+                                
+                                const impulseX = impulseScalar * nx;
+                                const impulseY = impulseScalar * ny;
+                                
+                                a.vx -= impulseX;
+                                a.vy -= impulseY;
+                                b.vx += impulseX;
+                                b.vy += impulseY;
+                            }
+                        }
+                        
+                        // Обновляем границы
+                        updateEmojiBounds(a);
+                        updateEmojiBounds(b);
+                        
+                        // Обновляем DOM
+                        a.element.style.left = `${a.x}px`;
+                        a.element.style.top = `${a.y}px`;
+                        b.element.style.left = `${b.x}px`;
+                        b.element.style.top = `${b.y}px`;
                     }
+                }
+            }
+        }
+        
+        function checkStability(deltaTime) {
+            for (let i = 0; i < gameState.emojis.length; i++) {
+                const emoji = gameState.emojis[i];
+                if (emoji.merged || emoji.settled) continue;
+                
+                // Считаем, сколько времени почти не двигается
+                if (Math.abs(emoji.vx) < 0.05 && Math.abs(emoji.vy) < 0.05 && emoji.onFloor) {
+                    emoji.settledTimer += deltaTime;
+                    
+                    // Если стабилен больше 0.4 секунды - устоялся
+                    if (emoji.settledTimer > 0.4) {
+                        emoji.settled = true;
+                        emoji.vx = 0;
+                        emoji.vy = 0;
+                        emoji.rotationSpeed = 0;
+                        
+                        // Жестко ставим на пол
+                        const floorY = FLOOR_Y;
+                        emoji.y = floorY - emoji.radius;
+                        updateEmojiBounds(emoji);
+                        emoji.element.style.top = `${emoji.y}px`;
+                    }
+                } else {
+                    emoji.settledTimer = 0;
                 }
             }
         }
@@ -596,22 +727,21 @@
         // ================= СЛИЯНИЯ =================
         
         function checkMerges() {
+            const settledEmojis = gameState.emojis.filter(e => !e.merged && e.settled);
             let mergedSomething = false;
             
-            for (let i = 0; i < gameState.emojis.length; i++) {
-                const a = gameState.emojis[i];
-                if (a.merged) continue;
+            for (let i = 0; i < settledEmojis.length; i++) {
+                const a = settledEmojis[i];
                 
-                for (let j = i + 1; j < gameState.emojis.length; j++) {
-                    const b = gameState.emojis[j];
-                    if (b.merged) continue;
+                for (let j = i + 1; j < settledEmojis.length; j++) {
+                    const b = settledEmojis[j];
                     
                     // Сливаются ТОЛЬКО одинаковые уровни
                     if (a.level === b.level && a.level < 7) {
                         const dx = a.x - b.x;
                         const dy = a.y - b.y;
                         const distance = Math.sqrt(dx * dx + dy * dy);
-                        const mergeDistance = (a.radius + b.radius) * 0.6; // Близкое расстояние для слияния
+                        const mergeDistance = a.radius + b.radius - 3; // Касаются с небольшим зазором
                         
                         if (distance < mergeDistance) {
                             mergeEmojis(a, b);
@@ -626,7 +756,7 @@
             
             // Цепная реакция
             if (mergedSomething) {
-                setTimeout(() => checkMerges(), 400);
+                setTimeout(() => checkMerges(), 300);
             }
         }
         
@@ -641,6 +771,7 @@
             const centerX = (a.x + b.x) / 2;
             const centerY = (a.y + b.y) / 2;
             const newSize = EMOJI_SIZES[newLevel - 1];
+            const newRadius = newSize / 2;
             
             // Анимация слияния
             a.element.classList.add('merge-animation');
@@ -651,7 +782,7 @@
                 if (a.element && a.element.parentNode) a.element.remove();
                 if (b.element && b.element.parentNode) b.element.remove();
                 
-                // Создаем НОВЫЙ ОГРОМНЫЙ смайлик
+                // Создаем новый смайлик
                 const newEmoji = document.createElement('div');
                 newEmoji.className = 'emoji';
                 newEmoji.textContent = EMOJI_LEVELS[newLevel - 1];
@@ -661,10 +792,9 @@
                 newEmoji.style.lineHeight = `${newSize}px`;
                 newEmoji.style.left = `${centerX}px`;
                 newEmoji.style.top = `${centerY}px`;
-                newEmoji.style.transform = `translate(-50%, -50%) rotate(${(Math.random() - 0.5) * 60}deg)`;
+                newEmoji.style.transform = `translate(-50%, -50%) rotate(0deg)`;
                 
                 applyEmojiStyles(newEmoji, newLevel);
-                
                 gameContainer.appendChild(newEmoji);
                 
                 // Физический объект нового смайлика
@@ -673,34 +803,53 @@
                     level: newLevel,
                     x: centerX,
                     y: centerY,
-                    vx: (Math.random() - 0.5) * 8,
-                    vy: -Math.random() * 6,
-                    radius: newSize / 2,
+                    vx: 0,
+                    vy: 0,
+                    radius: newRadius,
                     size: newSize,
-                    rotation: (Math.random() - 0.5) * 60,
-                    rotationSpeed: (Math.random() - 0.5) * 15,
+                    rotation: 0,
+                    rotationSpeed: 0,
                     merged: false,
-                    id: Date.now() + Math.random()
+                    id: Date.now() + Math.random(),
+                    settled: true,
+                    onFloor: true,
+                    settledTimer: 0.5,
+                    left: centerX - newRadius,
+                    right: centerX + newRadius,
+                    top: centerY - newRadius,
+                    bottom: centerY + newRadius
                 };
                 
                 gameState.emojis.push(physicsEmoji);
                 
+                // Обновляем очки
                 updateUI();
                 
-                // Эффект отталкивания при слиянии
-                for (const emoji of gameState.emojis) {
-                    if (emoji !== physicsEmoji && !emoji.merged) {
-                        const dx = emoji.x - centerX;
-                        const dy = emoji.y - centerY;
-                        const distance = Math.sqrt(dx * dx + dy * dy);
-                        
-                        if (distance < 200) {
-                            const force = 300 / (distance + 1);
-                            emoji.vx += (dx / distance) * force;
-                            emoji.vy += (dy / distance) * force;
+                // Проверяем столкновения для нового смайлика
+                setTimeout(() => {
+                    for (const other of gameState.emojis) {
+                        if (other !== physicsEmoji && !other.merged) {
+                            const dx = physicsEmoji.x - other.x;
+                            const dy = physicsEmoji.y - other.y;
+                            const distance = Math.sqrt(dx * dx + dy * dy);
+                            const minDistance = physicsEmoji.radius + other.radius;
+                            
+                            if (distance < minDistance && distance > 0) {
+                                const nx = dx / distance;
+                                const ny = dy / distance;
+                                const penetration = minDistance - distance;
+                                
+                                // Отодвигаем от других смайликов
+                                physicsEmoji.x += nx * penetration * 0.5;
+                                physicsEmoji.y += ny * penetration * 0.5;
+                                
+                                updateEmojiBounds(physicsEmoji);
+                                physicsEmoji.element.style.left = `${physicsEmoji.x}px`;
+                                physicsEmoji.element.style.top = `${physicsEmoji.y}px`;
+                            }
                         }
                     }
-                }
+                }, 10);
                 
             }, 500);
             
@@ -711,48 +860,28 @@
         // ================= КОНЕЦ ИГРЫ =================
         
         function checkGameOver() {
-            if (gameState.gameOver) return;
+            if (gameState.gameOver || gameState.moves < 3) return;
             
-            const containerRect = gameContainer.getBoundingClientRect();
-            const gameAreaHeight = containerRect.height;
-            const topLimit = 20; // 20px от верха игрового поля
+            // Сейчас 85px от верха (80px шапка + 5px зазор)
+            // Но мы опустили стартовую позицию до 150px, так что должно быть нормально
             
-            // Проверяем, достигли ли смайлики верха
-            let spaceLeft = true;
+            const topThreshold = 85;
+            let highestPoint = GAME_HEIGHT;
+            let highestEmoji = null;
             
-            // Считаем активные смайлики
-            const activeEmojis = gameState.emojis.filter(e => !e.merged);
+            const settledEmojis = gameState.emojis.filter(e => !e.merged && e.settled);
             
-            if (activeEmojis.length === 0) return; // Еще нет смайликов
-            
-            // Находим самый верхний смайлик
-            let highestY = containerRect.bottom;
-            for (const emoji of activeEmojis) {
+            for (const emoji of settledEmojis) {
                 const emojiTop = emoji.y - emoji.radius;
-                if (emojiTop < highestY) {
-                    highestY = emojiTop;
+                if (emojiTop < highestPoint) {
+                    highestPoint = emojiTop;
+                    highestEmoji = emoji;
                 }
             }
             
-            // Если самый верхний смайлик близко к верху
-            const distanceFromTop = highestY - containerRect.top;
-            
-            // Проверяем, есть ли свободное место сверху
-            if (distanceFromTop < topLimit) {
-                spaceLeft = false;
-            }
-            
-            // Также проверяем общую заполненность
-            const occupiedHeight = containerRect.bottom - highestY;
-            const fillPercentage = occupiedHeight / gameAreaHeight;
-            
-            if (!spaceLeft || fillPercentage > 0.85 || activeEmojis.length > gameState.maxEmojis) {
-                // Даем небольшую задержку перед концом
-                setTimeout(() => {
-                    if (!gameState.gameOver) {
-                        endGame();
-                    }
-                }, 500);
+            // Проверяем только если есть устоявшиеся смайлы
+            if (highestEmoji && highestPoint < topThreshold) {
+                endGame();
             }
         }
         
@@ -767,7 +896,7 @@
                 finalScore.textContent = gameState.score;
                 gameOverScreen.style.opacity = '1';
                 gameOverScreen.style.pointerEvents = 'auto';
-            }, 800);
+            }, 1000);
         }
         
         // ================= ОБНОВЛЕНИЕ UI =================
@@ -776,8 +905,7 @@
             scoreValue.textContent = gameState.score;
             nextEmoji.textContent = EMOJI_LEVELS[gameState.nextEmoji - 1];
             
-            // Масштабируем размер следующего смайлика в хедере
-            const headerSize = Math.min(EMOJI_SIZES[gameState.nextEmoji - 1] * 0.5, 45);
+            const headerSize = Math.min(EMOJI_SIZES[gameState.nextEmoji - 1] * 0.45, 40);
             nextEmoji.style.fontSize = `${headerSize}px`;
         }
         
@@ -785,7 +913,6 @@
         
         window.addEventListener('DOMContentLoaded', init);
         
-        // Блокируем стандартное поведение
         document.addEventListener('touchmove', (e) => {
             e.preventDefault();
         }, { passive: false });
