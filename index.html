@@ -186,7 +186,6 @@
             will-change: transform;
             text-shadow: 0 2px 4px rgba(0,0,0,0.5);
             transition: transform 0.05s linear;
-            /* Убираем трансформ для точных расчетов */
             transform: none !important;
             left: 0;
             top: 0;
@@ -250,7 +249,7 @@
             <h1 class="title">СМАЙЛИ</h1>
             <p class="subtitle">Бросай, катай, собирай комбо!</p>
             <button class="btn" id="startBtn">ИГРАТЬ</button>
-            <div class="tap-hint" id="tapHint">👇 ТАПАЙ СВЕРХУ 👇</div>
+            <div class="tap-hint" id="tapHint">↑ ТАПАЙ СВЕРХУ ↑</div>
         </div>
         
         <div class="screen game-screen" id="gameScreen">
@@ -491,8 +490,8 @@
             gameState.moves++;
         }
         
-        function createEmojiAt(x, startY) {
-            const emoji = new Emoji(x, startY, gameState.nextEmoji);
+        function createEmojiAt(x, y) {
+            const emoji = new Emoji(x, y, gameState.nextEmoji);
             
             emoji.vx = (Math.random() - 0.5) * 1.5;
             emoji.vy = 0.5 + Math.random() * 0.5;
@@ -577,95 +576,80 @@
         }
         
         function resolveCollisionsMultiplePasses(passes) {
-            for (let pass = 0; pass < passes; pass++) {
-                const activeEmojis = gameState.emojis.filter(e => !e.merged);
-                
-                activeEmojis.forEach(e => e.wasMoved = false);
-                
-                for (let i = 0; i < activeEmojis.length; i++) {
-                    const a = activeEmojis[i];
-                    
-                    for (let j = i + 1; j < activeEmojis.length; j++) {
-                        const b = activeEmojis[j];
-                        
-                        const aBounds = a.getBounds();
-                        const bBounds = b.getBounds();
-                        
-                        // ПРОВЕРКА КОЛЛИЗИИ КВАДРАТОВ
-                        const collision = 
-                            aBounds.left < bBounds.right &&
-                            aBounds.right > bBounds.left &&
-                            aBounds.top < bBounds.bottom &&
-                            aBounds.bottom > bBounds.top;
-                        
-                        if (collision) {
-                            // Расчет пересечения
-                            const overlapX = Math.min(
-                                aBounds.right - bBounds.left,
-                                bBounds.right - aBounds.left
-                            );
-                            const overlapY = Math.min(
-                                aBounds.bottom - bBounds.top,
-                                bBounds.bottom - aBounds.top
-                            );
-                            
-                            // Двигаем в направлении меньшего перекрытия
-                            if (overlapX < overlapY) {
-                                // Горизонтальное столкновение
-                                if (a.centerX() < b.centerX()) {
-                                    // A слева от B
-                                    a.x -= overlapX / 2;
-                                    b.x += overlapX / 2;
-                                } else {
-                                    // A справа от B
-                                    a.x += overlapX / 2;
-                                    b.x -= overlapX / 2;
-                                }
-                            } else {
-                                // Вертикальное столкновение
-                                if (a.centerY() < b.centerY()) {
-                                    // A выше B
-                                    a.y -= overlapY / 2;
-                                    b.y += overlapY / 2;
-                                } else {
-                                    // A ниже B
-                                    a.y += overlapY / 2;
-                                    b.y -= overlapY / 2;
-                                }
-                            }
-                            
-                            a.wasMoved = true;
-                            b.wasMoved = true;
-                            a.updatePosition();
-                            b.updatePosition();
-                            
-                            // Физика удара
-                            if (!a.settled && !b.settled) {
-                                const dx = a.centerX() - b.centerX();
-                                const dy = a.centerY() - b.centerY();
-                                const distance = Math.sqrt(dx*dx + dy*dy) || 0.001;
-                                
-                                const nx = dx / distance;
-                                const ny = dy / distance;
-                                
-                                const relativeVx = b.vx - a.vx;
-                                const relativeVy = b.vy - a.vy;
-                                const velocityAlongNormal = relativeVx * nx + relativeVy * ny;
-                                
-                                if (velocityAlongNormal < 0) {
-                                    const impulse = -velocityAlongNormal * 0.7;
-                                    const impulseScalar = impulse / 2;
-                                    
-                                    a.vx -= impulseScalar * nx;
-                                    a.vy -= impulseScalar * ny;
-                                    b.vx += impulseScalar * nx;
-                                    b.vy += impulseScalar * ny;
-                                }
-                            }
+            const floorY = FLOOR_Y;
+    
+        for (let pass = 0; pass < passes; pass++) {
+            const activeEmojis = gameState.emojis.filter(e => !e.merged);
+            activeEmojis.forEach(e => e.wasMoved = false);
+
+            for (let i = 0; i < activeEmojis.length; i++) {
+                const a = activeEmojis[i];
+                for (let j = i + 1; j < activeEmojis.length; j++) {
+                    const b = activeEmojis[j];
+
+                    const aBounds = a.getBounds();
+                    const bBounds = b.getBounds();
+
+                // AABB Collision Check
+                    const isColliding = aBounds.left < bBounds.right &&
+                                        aBounds.right > bBounds.left &&
+                                        aBounds.top < bBounds.bottom &&
+                                        aBounds.bottom > bBounds.top;
+
+                if (isColliding) {
+                        const overlapX = Math.min(aBounds.right - bBounds.left, bBounds.right - aBounds.left);
+                        const overlapY = Math.min(aBounds.bottom - bBounds.top, bBounds.bottom - aBounds.top);
+
+                    // 1. POSITION RESOLUTION (Push them apart)
+                        if (overlapX < overlapY) {
+                            const dir = a.centerX() < b.centerX() ? -1 : 1;
+                            a.x += (overlapX / 2) * dir;
+                            b.x -= (overlapX / 2) * dir;
+                        } else {
+                            const dir = a.centerY() < b.centerY() ? -1 : 1;
+                            a.y += (overlapY / 2) * dir;
+                            b.y -= (overlapY / 2) * dir;
                         }
+
+                    // 2. IMMEDIATE BOUNDARY CLAMPING (The "No Floor" Fix)
+                    // Ensure resolution didn't push anyone through the floor or walls
+                        [a, b].forEach(emoji => {
+                            // Floor check
+                            if (emoji.y + emoji.size > floorY) {
+                            emoji.y = floorY - emoji.size;
+                            }
+                            // Wall checks
+                            if (emoji.x < 0) emoji.x = 0;
+                            if (emoji.x + emoji.size > SCREEN_WIDTH) emoji.x = SCREEN_WIDTH - emoji.size;
+                        
+                            emoji.updatePosition();
+                        });
+
+                        // 3. IMPULSE RESOLUTION (Elasticity/Bounce)
+                        const dx = a.centerX() - b.centerX();
+                        const dy = a.centerY() - b.centerY();
+                        const distance = Math.sqrt(dx * dx + dy * dy) || 0.1;
+                        const nx = dx / distance;
+                        const ny = dy / distance;
+
+                        const relativeVx = b.vx - a.vx;
+                        const relativeVy = b.vy - a.vy;
+                        const velocityAlongNormal = relativeVx * nx + relativeVy * ny;
+
+                        if (velocityAlongNormal < 0) {
+                            const impulse = -velocityAlongNormal * 0.5; 
+                            a.vx -= impulse * nx;
+                            a.vy -= impulse * ny;
+                            b.vx += impulse * nx;
+                            b.vy += impulse * ny;
+                       }
+    
+                        //a.wasMoved = true;
+                        //b.wasMoved = true;
                     }
                 }
             }
+        }
         }
         
         function checkStability(deltaTime) {
@@ -695,13 +679,13 @@
         }
         
         function checkMerges() {
-            const settledEmojis = gameState.emojis.filter(e => !e.merged && e.settled);
+            const emojis = gameState.emojis.filter(e => !e.merged);
             let mergedSomething = false;
             
-            for (let i = 0; i < settledEmojis.length; i++) {
-                for (let j = i + 1; j < settledEmojis.length; j++) {
-                    const a = settledEmojis[i];
-                    const b = settledEmojis[j];
+            for (let i = 0; i < emojis.length; i++) {
+                for (let j = i + 1; j < emojis.length; j++) {
+                    const a = emojis[i];
+                    const b = emojis[j];
                     
                     if (a.level === b.level && a.level < 7) {
                         const aBounds = a.getBounds();
@@ -709,10 +693,10 @@
                         
                         // Слияние при касании
                         const touching = 
-                            aBounds.left < bBounds.right - 5 &&
-                            aBounds.right > bBounds.left + 5 &&
-                            aBounds.top < bBounds.bottom - 5 &&
-                            aBounds.bottom > bBounds.top + 5;
+                            aBounds.left < bBounds.right + 1 &&
+                            aBounds.right > bBounds.left - 1 &&
+                            aBounds.top < bBounds.bottom + 1 &&
+                            aBounds.bottom > bBounds.top - 1;
                         
                         if (touching) {
                             mergeEmojis(a, b);
@@ -759,7 +743,7 @@
                 gameState.emojis = gameState.emojis.filter(e => e !== a && e !== b);
                 
                 updateUI();
-                fixCollisionsForNewEmoji(newEmoji);
+                for (i = 0; i < 3; i++) fixCollisionsForNewEmoji(newEmoji);
                 
             }, 500);
         }
