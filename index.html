@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Смайли</title>
     <style>
-        /* ФИКСИРОВАННАЯ ВЕРСТКА 400x800px */
+        /* БАЗОВЫЕ СТИЛИ */
         * {
             margin: 0;
             padding: 0;
@@ -29,14 +29,17 @@
             align-items: center;
         }
         
-        /* ОСНОВНОЙ КОНТЕЙНЕР 400x800px */
+        /* ОСНОВНОЙ КОНТЕЙНЕР - АДАПТИВНЫЙ */
         #app {
-            width: 400px;
-            height: 800px;
+            width: 100%;
+            height: 100%;
+            max-width: 400px;
+            max-height: 800px;
+            aspect-ratio: 400/800;
             position: relative;
             overflow: hidden;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-            border-radius: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         }
         
         /* ЭКРАНЫ */
@@ -44,8 +47,8 @@
             position: absolute;
             top: 0;
             left: 0;
-            width: 400px;
-            height: 800px;
+            width: 100%;
+            height: 100%;
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -119,8 +122,9 @@
             position: absolute;
             top: 0;
             left: 0;
-            width: 400px;
-            height: 80px;
+            width: 100%;
+            height: 10%; /* 80px от 800px = 10% */
+            min-height: 80px;
             background: rgba(0, 0, 0, 0.6);
             backdrop-filter: blur(20px);
             -webkit-backdrop-filter: blur(20px);
@@ -154,25 +158,26 @@
             font-size: 2.5rem;
         }
         
-        /* ИГРОВОЕ ПОЛЕ С ФИКСИРОВАННЫМ ПОЛОМ */
+        /* ИГРОВОЕ ПОЛЕ */
         #gameContainer {
             position: absolute;
-            top: 80px;
+            top: 10%; /* Шапка */
             left: 0;
-            width: 400px;
-            height: 720px; /* 800 - 80 = 720 */
+            width: 100%;
+            height: 90%; /* Остальная часть */
             z-index: 50;
             overflow: hidden;
             background: linear-gradient(to bottom, rgba(0,0,0,0.15), rgba(0,0,0,0.25));
         }
         
-        /* ПОЛ (земля) - ФИКСИРОВАННЫЙ */
+        /* ПОЛ (земля) - ВИДИМЫЙ */
         .floor {
             position: absolute;
             bottom: 0;
             left: 0;
-            width: 400px;
-            height: 30px;
+            width: 100%;
+            height: 4%; /* 30px от 720px ≈ 4% */
+            min-height: 30px;
             background: linear-gradient(to top, rgba(139, 69, 19, 0.8), rgba(160, 82, 45, 0.9));
             z-index: 40;
             border-top: 3px solid rgba(210, 105, 30, 0.8);
@@ -203,7 +208,8 @@
             border-radius: 25px;
             padding: 2rem 1.5rem;
             text-align: center;
-            width: 320px;
+            width: 80%;
+            max-width: 320px;
             border: 1px solid rgba(255, 255, 255, 0.2);
             box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
         }
@@ -219,7 +225,7 @@
         /* ПОДСКАЗКА */
         .tap-hint {
             position: absolute;
-            bottom: 120px;
+            bottom: 15%; /* 120px от 800px = 15% */
             font-size: 1.4rem;
             font-weight: bold;
             color: #FFD700;
@@ -227,6 +233,8 @@
             animation: pulse 1.5s infinite;
             text-align: center;
             z-index: 60;
+            width: 100%;
+            padding: 0 1rem;
         }
         
         @keyframes pulse {
@@ -292,13 +300,14 @@
         const EMOJI_SIZES = [35, 55, 80, 115, 160, 220, 300];
         const POINTS_PER_LEVEL = [10, 40, 120, 350, 1000, 3000, 9000];
         
-        const SCREEN_WIDTH = 400;
-        const SCREEN_HEIGHT = 800;
-        const HEADER_HEIGHT = 80;
-        const FLOOR_HEIGHT = 30;
-        const GAME_HEIGHT = SCREEN_HEIGHT - HEADER_HEIGHT;
-        const FLOOR_Y = GAME_HEIGHT - FLOOR_HEIGHT;
-        const GAME_OVER_THRESHOLD = 5; // 5px до низа шапки
+        // Динамические размеры (будут установлены при запуске)
+        let SCREEN_WIDTH = 400;
+        let SCREEN_HEIGHT = 800;
+        let HEADER_HEIGHT = 80;
+        let FLOOR_HEIGHT = 30;
+        let GAME_HEIGHT = 720;
+        let FLOOR_Y = 690; // 800 - 80 - 30
+        let GAME_OVER_THRESHOLD = 5; // 5px до низа шапки
         
         // ================= СИСТЕМА СМАЙЛОВ =================
         class Emoji {
@@ -322,10 +331,16 @@
                 this.element = document.createElement('div');
                 this.element.className = 'emoji';
                 this.element.textContent = EMOJI_LEVELS[level - 1];
-                this.element.style.fontSize = `${this.size}px`;
-                this.element.style.width = `${this.size}px`;
-                this.element.style.height = `${this.size}px`;
-                this.element.style.lineHeight = `${this.size}px`;
+                
+                // Адаптивный размер
+                const scale = Math.min(SCREEN_WIDTH / 400, 1);
+                this.displaySize = this.size * scale;
+                
+                this.element.style.fontSize = `${this.displaySize}px`;
+                this.element.style.width = `${this.displaySize}px`;
+                this.element.style.height = `${this.displaySize}px`;
+                this.element.style.lineHeight = `${this.displaySize}px`;
+                
                 this.updatePosition();
                 this.applyStyles();
                 
@@ -406,11 +421,48 @@
         const nextEmoji = document.getElementById('nextEmoji');
         const finalScore = document.getElementById('finalScore');
         const gameContainer = document.getElementById('gameContainer');
+        const app = document.getElementById('app');
         
-        // ================= ИНИЦИАЛИЗАЦИЯ =================
+        // ================= ИНИЦИАЛИЗАЦИЯ И РАЗМЕРЫ =================
         function init() {
             setupEventListeners();
+            updateGameDimensions();
             resetGame();
+            
+            // Обновляем размеры при изменении окна
+            window.addEventListener('resize', updateGameDimensions);
+            window.addEventListener('orientationchange', () => {
+                setTimeout(updateGameDimensions, 300);
+            });
+        }
+        
+        function updateGameDimensions() {
+            // Получаем реальные размеры контейнера
+            const rect = app.getBoundingClientRect();
+            SCREEN_WIDTH = rect.width;
+            SCREEN_HEIGHT = rect.height;
+            
+            // Вычисляем пропорциональные размеры
+            HEADER_HEIGHT = SCREEN_HEIGHT * 0.1; // 10%
+            FLOOR_HEIGHT = Math.max(SCREEN_HEIGHT * 0.04, 20); // 4%, но минимум 20px
+            GAME_HEIGHT = SCREEN_HEIGHT - HEADER_HEIGHT;
+            FLOOR_Y = GAME_HEIGHT - FLOOR_HEIGHT;
+            
+            // Обновляем высоту контейнера игры
+            gameContainer.style.height = `${GAME_HEIGHT}px`;
+            gameContainer.style.top = `${HEADER_HEIGHT}px`;
+            
+            // Обновляем высоту шапки
+            const header = document.querySelector('.game-header');
+            if (header) {
+                header.style.height = `${HEADER_HEIGHT}px`;
+            }
+            
+            // Обновляем высоту пола
+            const floor = document.querySelector('.floor');
+            if (floor) {
+                floor.style.height = `${FLOOR_HEIGHT}px`;
+            }
         }
         
         function setupEventListeners() {
@@ -480,7 +532,9 @@
             if (gameState.gameOver || !gameState.physicsRunning) return;
             
             const rect = gameContainer.getBoundingClientRect();
-            const x = Math.max(50, Math.min(e.clientX - rect.left, 350));
+            const minX = 50;
+            const maxX = SCREEN_WIDTH - 50;
+            const x = Math.max(minX, Math.min(e.clientX - rect.left, maxX));
             
             createEmojiAt(x, 100);
             gameState.moves++;
@@ -492,7 +546,9 @@
             
             const touch = e.touches[0];
             const rect = gameContainer.getBoundingClientRect();
-            const x = Math.max(50, Math.min(touch.clientX - rect.left, 350));
+            const minX = 50;
+            const maxX = SCREEN_WIDTH - 50;
+            const x = Math.max(minX, Math.min(touch.clientX - rect.left, maxX));
             
             createEmojiAt(x, 100);
             gameState.moves++;
@@ -836,7 +892,9 @@
             scoreValue.textContent = gameState.score;
             nextEmoji.textContent = EMOJI_LEVELS[gameState.nextEmoji - 1];
             
-            const headerSize = Math.min(EMOJI_SIZES[gameState.nextEmoji - 1] * 0.45, 40);
+            // Адаптивный размер следующего смайла в шапке
+            const scale = Math.min(SCREEN_WIDTH / 400, 1);
+            const headerSize = Math.min(EMOJI_SIZES[gameState.nextEmoji - 1] * 0.45 * scale, 40);
             nextEmoji.style.fontSize = `${headerSize}px`;
         }
         
