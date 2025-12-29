@@ -1,59 +1,285 @@
-<script>
-    // ================= КОНФИГУРАЦИЯ =================
-    const EMOJI_LEVELS = [
-        "😊",  // Уровень 1
-        "😎",  // Уровень 2  
-        "🥳",  // Уровень 3
-        "🤩",  // Уровень 4
-        "🤑",  // Уровень 5
-        "🤯",  // Уровень 6
-        "👑"   // Уровень 7 (легендарный)
-    ];
-    
-    const EMOJI_RAIN = ["😊", "😎", "🥳", "🤩", "🤑", "🤯", "👑", "😁", "😍", "🥰", "🤔", "😴", "🤪", "🥺"];
-    
-    const GRID_SIZE = 8;
-    const POINTS_PER_LEVEL = [10, 25, 50, 100, 250, 500, 1000];
-    
-    // ================= СОСТОЯНИЕ ИГРЫ =================
-    let gameState = {
-        grid: Array(GRID_SIZE).fill().map(() => Array(GRID_SIZE).fill(0)),
-        nextEmoji: 1,
-        score: 0,
-        combo: 1.0,
-        moves: 0,
-        gameOver: false,
-        lastMergeChain: 0
-    };
-    
-    // ================= ДОМ-ЭЛЕМЕНТЫ =================
-    const startScreen = document.getElementById('startScreen');
-    const gameScreen = document.getElementById('gameScreen');
-    const gameOverScreen = document.getElementById('gameOverScreen');
-    const gameGrid = document.getElementById('gameGrid');
-    const scoreValue = document.getElementById('scoreValue');
-    const nextEmoji = document.getElementById('nextEmoji');
-    const currentScore = document.getElementById('currentScore');
-    const comboValue = document.getElementById('comboValue');
-    const movesCount = document.getElementById('movesCount');
-    const finalScore = document.getElementById('finalScore');
-    const emojiRain = document.getElementById('emojiRain');
-    
-    // ================= ИНИЦИАЛИЗАЦИЯ =================
-    function init() {
-        createEmojiRain();
-        createGrid();
-        setupEventListeners();
-        resetGame();
-        showTapToStart();
-    }
-    
-    // Показать подсказку "Tap to Start"
-    function showTapToStart() {
-        const tapHint = document.createElement('div');
-        tapHint.id = 'tapHint';
-        tapHint.innerHTML = '👇 TAP TO START 👇';
-        tapHint.style.cssText = `
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Смайли - Smiley Merge</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+        }
+        
+        body {
+            font-family: 'Arial Rounded MT Bold', 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            overflow: hidden;
+            touch-action: manipulation;
+        }
+        
+        .screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            transition: opacity 0.5s;
+        }
+        
+        .start-screen {
+            z-index: 10;
+        }
+        
+        .game-screen {
+            z-index: 5;
+            opacity: 0;
+            pointer-events: none;
+        }
+        
+        .game-over-screen {
+            z-index: 5;
+            opacity: 0;
+            pointer-events: none;
+            background: rgba(0, 0, 0, 0.85);
+        }
+        
+        .title {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            text-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            background: linear-gradient(45deg, #FFD700, #FFA500);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .subtitle {
+            font-size: 1.2rem;
+            margin-bottom: 2rem;
+            opacity: 0.8;
+        }
+        
+        .btn {
+            background: linear-gradient(45deg, #FFD700, #FFA500);
+            border: none;
+            border-radius: 50px;
+            padding: 1rem 2rem;
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: #333;
+            cursor: pointer;
+            margin: 0.5rem;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .btn:hover, .btn:active {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+        }
+        
+        .btn-small {
+            padding: 0.7rem 1.5rem;
+            font-size: 1rem;
+        }
+        
+        .emoji-rain {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+        
+        .emoji {
+            position: absolute;
+            font-size: 2rem;
+            animation: fall linear infinite;
+        }
+        
+        @keyframes fall {
+            to {
+                transform: translateY(100vh) rotate(360deg);
+            }
+        }
+        
+        .game-header {
+            width: 100%;
+            max-width: 500px;
+            display: flex;
+            justify-content: space-between;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+        
+        .score-container, .next-container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 1rem;
+            text-align: center;
+            min-width: 120px;
+        }
+        
+        .score-label, .next-label {
+            font-size: 0.9rem;
+            opacity: 0.8;
+            margin-bottom: 0.5rem;
+        }
+        
+        .score-value {
+            font-size: 2rem;
+            font-weight: bold;
+        }
+        
+        .next-emoji {
+            font-size: 2.5rem;
+        }
+        
+        .grid-container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 15px;
+            margin: 0 1rem;
+        }
+        
+        #gameGrid {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            grid-template-rows: repeat(8, 1fr);
+            gap: 5px;
+            width: min(90vw, 400px);
+            height: min(90vw, 400px);
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 5px;
+        }
+        
+        .cell {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: all 0.2s;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .cell:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+        
+        .cell.empty:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+        
+        .emoji-cell {
+            font-size: 1.5rem;
+            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        
+        @keyframes popIn {
+            0% { transform: scale(0); }
+            70% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+        
+        .merge-effect {
+            animation: mergePulse 0.5s;
+        }
+        
+        @keyframes mergePulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.3); }
+            100% { transform: scale(1); }
+        }
+        
+        .game-over-content {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 2rem;
+            text-align: center;
+            max-width: 400px;
+            margin: 1rem;
+        }
+        
+        .final-score {
+            font-size: 3rem;
+            margin: 1rem 0;
+            color: #FFD700;
+        }
+        
+        .author {
+            margin-top: 1.5rem;
+            padding-top: 1rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+            font-size: 0.9rem;
+            opacity: 0.7;
+        }
+        
+        .author a {
+            color: #FFD700;
+            text-decoration: none;
+        }
+        
+        .share-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        
+        .share-btn {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1.5rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .share-btn:hover {
+            background: rgba(255, 255, 255, 0.25);
+            transform: scale(1.1);
+        }
+        
+        .tg-icon::after {
+            content: "📱";
+        }
+        
+        .vk-icon::after {
+            content: "👥";
+        }
+        
+        .instructions {
+            margin-top: 1rem;
+            font-size: 0.9rem;
+            opacity: 0.8;
+            max-width: 400px;
+            text-align: center;
+            line-height: 1.4;
+            padding: 0 1rem;
+        }
+        
+        .tap-hint {
             position: absolute;
             bottom: 80px;
             font-size: 1.5rem;
@@ -61,140 +287,117 @@
             color: #FFD700;
             text-shadow: 0 2px 5px rgba(0,0,0,0.5);
             animation: pulse 1.5s infinite;
-        `;
-        
-        const style = document.createElement('style');
-        style.textContent = `
-            @keyframes pulse {
-                0% { opacity: 0.3; transform: scale(0.9); }
-                50% { opacity: 1; transform: scale(1.1); }
-                100% { opacity: 0.3; transform: scale(0.9); }
-            }
-        `;
-        document.head.appendChild(style);
-        
-        startScreen.appendChild(tapHint);
-    }
-    
-    // Создаем эффект падающих эмодзи на стартовом экране
-    function createEmojiRain() {
-        for (let i = 0; i < 20; i++) {
-            setTimeout(() => {
-                createFallingEmoji();
-            }, i * 300);
         }
         
-        // Периодически добавляем новые эмодзи
-        setInterval(() => {
-            if (startScreen.style.opacity !== '0') {
-                createFallingEmoji();
-            }
-        }, 800);
-    }
-    
-    function createFallingEmoji() {
-        const emoji = document.createElement('div');
-        emoji.className = 'emoji';
-        emoji.textContent = EMOJI_RAIN[Math.floor(Math.random() * EMOJI_RAIN.length)];
-        emoji.style.left = Math.random() * 100 + '%';
-        emoji.style.fontSize = (Math.random() * 2 + 1) + 'rem';
-        emoji.style.animationDuration = (Math.random() * 5 + 5) + 's';
-        emoji.style.animationDelay = Math.random() * 2 + 's';
-        emojiRain.appendChild(emoji);
+        @keyframes pulse {
+            0% { opacity: 0.3; transform: scale(0.9); }
+            50% { opacity: 1; transform: scale(1.1); }
+            100% { opacity: 0.3; transform: scale(0.9); }
+        }
         
-        // Удаляем эмодзи после анимации
-        setTimeout(() => {
-            if (emoji.parentNode === emojiRain) {
-                emoji.remove();
+        @media (max-width: 500px) {
+            .title {
+                font-size: 3rem;
             }
-        }, parseFloat(emoji.style.animationDuration) * 1000);
-    }
-    
-    // Создаем игровую сетку
-    function createGrid() {
-        gameGrid.innerHTML = '';
-        for (let row = 0; row < GRID_SIZE; row++) {
-            for (let col = 0; col < GRID_SIZE; col++) {
-                const cell = document.createElement('div');
-                cell.className = 'cell empty';
-                cell.dataset.row = row;
-                cell.dataset.col = col;
-                gameGrid.appendChild(cell);
+            
+            .game-header {
+                flex-direction: column;
+                align-items: center;
+                gap: 0.5rem;
+            }
+            
+            .score-container, .next-container {
+                width: 100%;
+                max-width: 200px;
+            }
+            
+            .tap-hint {
+                font-size: 1.2rem;
+                bottom: 60px;
             }
         }
-    }
+    </style>
+</head>
+<body>
+    <!-- Стартовый экран -->
+    <div class="screen start-screen" id="startScreen">
+        <div class="emoji-rain" id="emojiRain"></div>
+        <h1 class="title">Смайли</h1>
+        <p class="subtitle">Smiley Merge Game</p>
+        <button class="btn" id="startBtn">START</button>
+        <div class="tap-hint" id="tapHint">👇 TAP TO START 👇</div>
+        <p class="instructions">
+            Тапай по пустым клеткам, чтобы размещать смайлики.<br>
+            Два одинаковых рядом сливаются в новый!<br>
+            Игра закончится, когда не останется места.
+        </p>
+    </div>
     
-    // Настройка обработчиков событий
-    function setupEventListeners() {
-        document.getElementById('startBtn').addEventListener('click', startGame);
-        document.getElementById('playAgainBtn').addEventListener('click', startGame);
-        document.getElementById('shareTgBtn').addEventListener('click', shareTelegram);
-        document.getElementById('shareVkBtn').addEventListener('click', shareVK);
+    <!-- Игровой экран -->
+    <div class="screen game-screen" id="gameScreen">
+        <div class="game-header">
+            <div class="score-container">
+                <div class="score-label">ОЧКИ</div>
+                <div class="score-value" id="scoreValue">0</div>
+            </div>
+            <div class="next-container">
+                <div class="next-label">СЛЕДУЮЩИЙ</div>
+                <div class="next-emoji" id="nextEmoji">😊</div>
+            </div>
+        </div>
         
-        // Обработка кликов по сетке
-        gameGrid.addEventListener('click', handleGridClick);
+        <div class="grid-container">
+            <div id="gameGrid"></div>
+        </div>
         
-        // Поддержка свайпов для мобильных устройств
-        let touchStartX, touchStartY;
-        gameGrid.addEventListener('touchstart', (e) => {
-            touchStartX = e.touches[0].clientX;
-            touchStartY = e.touches[0].clientY;
-            e.preventDefault();
-        }, { passive: false });
-        
-        gameGrid.addEventListener('touchend', (e) => {
-            if (!touchStartX || !touchStartY) return;
-            
-            const touchEndX = e.changedTouches[0].clientX;
-            const touchEndY = e.changedTouches[0].clientY;
-            
-            const diffX = touchEndX - touchStartX;
-            const diffY = touchEndY - touchStartY;
-            
-            // Если свайп небольшой, считаем это кликом
-            if (Math.abs(diffX) < 30 && Math.abs(diffY) < 30) {
-                const target = document.elementFromPoint(touchEndX, touchEndY);
-                if (target && target.classList.contains('cell')) {
-                    handleCellClick(target);
-                }
-            }
-            
-            touchStartX = null;
-            touchStartY = null;
-            e.preventDefault();
-        }, { passive: false });
-    }
+        <div class="instructions">
+            Счёт: <span id="currentScore">0</span> | 
+            Комбо: <span id="comboValue">x1.0</span> | 
+            Ходов: <span id="movesCount">0</span>
+        </div>
+    </div>
     
-    // ================= ИГРОВАЯ ЛОГИКА =================
-    
-    // Начало новой игры
-    function startGame() {
-        // Убираем подсказку "Tap to Start"
-        const tapHint = document.getElementById('tapHint');
-        if (tapHint) tapHint.remove();
+    <!-- Экран завершения игры -->
+    <div class="screen game-over-screen" id="gameOverScreen">
+        <div class="game-over-content">
+            <h2>ИГРА ОКОНЧЕНА!</h2>
+            <div class="final-score" id="finalScore">0</div>
+            <p>Твой результат</p>
+            
+            <button class="btn" id="playAgainBtn">ИГРАТЬ ЕЩЁ</button>
+            
+            <div class="share-buttons">
+                <div class="share-btn tg-icon" id="shareTgBtn" title="Поделиться в Telegram"></div>
+                <div class="share-btn vk-icon" id="shareVkBtn" title="Поделиться в ВК"></div>
+            </div>
+            
+            <div class="author">
+                автор <a href="https://t.me/geyzerrr_A" target="_blank">Geyzerrr</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ================= КОНФИГУРАЦИЯ =================
+        const EMOJI_LEVELS = [
+            "😊",  // Уровень 1
+            "😎",  // Уровень 2  
+            "🥳",  // Уровень 3
+            "🤩",  // Уровень 4
+            "🤑",  // Уровень 5
+            "🤯",  // Уровень 6
+            "👑"   // Уровень 7 (легендарный)
+        ];
         
-        resetGame();
+        const EMOJI_RAIN = ["😊", "😎", "🥳", "🤩", "🤑", "🤯", "👑", "😁", "😍", "🥰", "🤔", "😴", "🤪", "🥺"];
         
-        // Переключаем экраны
-        startScreen.style.opacity = '0';
-        startScreen.style.pointerEvents = 'none';
+        const GRID_SIZE = 8;
+        const POINTS_PER_LEVEL = [10, 25, 50, 100, 250, 500, 1000];
         
-        gameOverScreen.style.opacity = '0';
-        gameOverScreen.style.pointerEvents = 'none';
-        
-        setTimeout(() => {
-            gameScreen.style.opacity = '1';
-            gameScreen.style.pointerEvents = 'auto';
-        }, 300);
-        
-        renderGrid();
-    }
-    
-    // Сброс состояния игры
-    function resetGame() {
-        gameState = {
+        // ================= СОСТОЯНИЕ ИГРЫ =================
+        let gameState = {
             grid: Array(GRID_SIZE).fill().map(() => Array(GRID_SIZE).fill(0)),
-            nextEmoji: getRandomEmojiLevel(),
+            nextEmoji: 1,
             score: 0,
             combo: 1.0,
             moves: 0,
@@ -202,311 +405,405 @@
             lastMergeChain: 0
         };
         
-        updateUI();
-    }
-    
-    // Генерация случайного уровня эмодзи (больше шансов на низкие уровни)
-    function getRandomEmojiLevel() {
-        const rand = Math.random();
-        if (rand < 0.6) return 1;      // 60% - уровень 1
-        if (rand < 0.85) return 2;     // 25% - уровень 2
-        if (rand < 0.95) return 3;     // 10% - уровень 3
-        return 4;                      // 5% - уровень 4
-    }
-    
-    // Обработка клика по сетке
-    function handleGridClick(e) {
-        if (gameState.gameOver) return;
+        // ================= ДОМ-ЭЛЕМЕНТЫ =================
+        const startScreen = document.getElementById('startScreen');
+        const gameScreen = document.getElementById('gameScreen');
+        const gameOverScreen = document.getElementById('gameOverScreen');
+        const gameGrid = document.getElementById('gameGrid');
+        const scoreValue = document.getElementById('scoreValue');
+        const nextEmoji = document.getElementById('nextEmoji');
+        const currentScore = document.getElementById('currentScore');
+        const comboValue = document.getElementById('comboValue');
+        const movesCount = document.getElementById('movesCount');
+        const finalScore = document.getElementById('finalScore');
+        const emojiRain = document.getElementById('emojiRain');
+        const tapHint = document.getElementById('tapHint');
         
-        const cell = e.target;
-        if (!cell.classList.contains('cell')) return;
-        
-        handleCellClick(cell);
-    }
-    
-    function handleCellClick(cell) {
-        const row = parseInt(cell.dataset.row);
-        const col = parseInt(cell.dataset.col);
-        
-        // Проверяем, что клетка пустая
-        if (gameState.grid[row][col] !== 0) return;
-        
-        // Размещаем эмодзи с анимацией падения
-        placeEmojiWithAnimation(row, col);
-    }
-    
-    // Размещение эмодзи на поле с анимацией падения
-    function placeEmojiWithAnimation(row, col) {
-        // Создаем анимированный элемент смайлика
-        const emojiElement = document.createElement('div');
-        emojiElement.textContent = EMOJI_LEVELS[gameState.nextEmoji - 1];
-        emojiElement.style.cssText = `
-            position: absolute;
-            font-size: 2rem;
-            top: -50px;
-            left: ${col * (100 / GRID_SIZE) + 2.5}%;
-            z-index: 10;
-            transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
-        `;
-        
-        gameGrid.appendChild(emojiElement);
-        
-        // Анимация падения
-        setTimeout(() => {
-            const cellRect = document.querySelector(`[data-row="${row}"][data-col="${col}"]`).getBoundingClientRect();
-            const gridRect = gameGrid.getBoundingClientRect();
-            
-            const targetTop = (row * (gridRect.height / GRID_SIZE)) + gridRect.top;
-            const targetLeft = (col * (gridRect.width / GRID_SIZE)) + gridRect.left;
-            
-            emojiElement.style.transform = `translate(${targetLeft}px, ${targetTop}px)`;
-        }, 10);
-        
-        // После падения - размещаем на поле
-        setTimeout(() => {
-            emojiElement.remove();
-            placeEmoji(row, col);
-        }, 500);
-    }
-    
-    // Размещение эмодзи на поле
-    function placeEmoji(row, col) {
-        gameState.grid[row][col] = gameState.nextEmoji;
-        gameState.moves++;
-        
-        // Проверяем слияние
-        const mergeResult = checkAndMerge(row, col);
-        
-        // Если было слияние, увеличиваем комбо
-        if (mergeResult.merged) {
-            gameState.lastMergeChain++;
-            gameState.combo = Math.min(3.0, 1.0 + gameState.lastMergeChain * 0.1);
-        } else {
-            gameState.lastMergeChain = 0;
-            gameState.combo = 1.0;
+        // ================= ИНИЦИАЛИЗАЦИЯ =================
+        function init() {
+            createEmojiRain();
+            createGrid();
+            setupEventListeners();
+            resetGame();
         }
         
-        // Применяем гравитацию
-        applyGravity();
-        
-        // Проверяем слияния после гравитации (цепная реакция)
-        let chainReaction = true;
-        let chainCount = 0;
-        
-        while (chainReaction && chainCount < 5) { // Ограничиваем цепную реакцию
-            chainReaction = false;
+        // Создаем эффект падающих эмодзи на стартовом экране
+        function createEmojiRain() {
+            for (let i = 0; i < 20; i++) {
+                setTimeout(() => {
+                    createFallingEmoji();
+                }, i * 300);
+            }
             
-            for (let r = 0; r < GRID_SIZE; r++) {
-                for (let c = 0; c < GRID_SIZE; c++) {
-                    if (gameState.grid[r][c] !== 0) {
-                        const result = checkAndMerge(r, c);
-                        if (result.merged) {
-                            chainReaction = true;
-                            chainCount++;
-                            
-                            // Увеличиваем комбо за цепную реакцию
-                            gameState.lastMergeChain++;
-                            gameState.combo = Math.min(3.0, 1.0 + gameState.lastMergeChain * 0.1);
+            // Периодически добавляем новые эмодзи
+            setInterval(() => {
+                createFallingEmoji();
+            }, 800);
+        }
+        
+        function createFallingEmoji() {
+            const emoji = document.createElement('div');
+            emoji.className = 'emoji';
+            emoji.textContent = EMOJI_RAIN[Math.floor(Math.random() * EMOJI_RAIN.length)];
+            emoji.style.left = Math.random() * 100 + '%';
+            emoji.style.fontSize = (Math.random() * 2 + 1) + 'rem';
+            emoji.style.animationDuration = (Math.random() * 5 + 5) + 's';
+            emoji.style.animationDelay = Math.random() * 2 + 's';
+            emojiRain.appendChild(emoji);
+            
+            // Удаляем эмодзи после анимации
+            setTimeout(() => {
+                if (emoji.parentNode === emojiRain) {
+                    emoji.remove();
+                }
+            }, parseFloat(emoji.style.animationDuration) * 1000);
+        }
+        
+        // Создаем игровую сетку
+        function createGrid() {
+            gameGrid.innerHTML = '';
+            for (let row = 0; row < GRID_SIZE; row++) {
+                for (let col = 0; col < GRID_SIZE; col++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell empty';
+                    cell.dataset.row = row;
+                    cell.dataset.col = col;
+                    gameGrid.appendChild(cell);
+                }
+            }
+        }
+        
+        // Настройка обработчиков событий
+        function setupEventListeners() {
+            document.getElementById('startBtn').addEventListener('click', startGame);
+            document.getElementById('playAgainBtn').addEventListener('click', startGame);
+            document.getElementById('shareTgBtn').addEventListener('click', shareTelegram);
+            document.getElementById('shareVkBtn').addEventListener('click', shareVK);
+            
+            // Обработка кликов по сетке
+            gameGrid.addEventListener('click', handleGridClick);
+        }
+        
+        // ================= ИГРОВАЯ ЛОГИКА =================
+        
+        // Начало новой игры
+        function startGame() {
+            resetGame();
+            
+            // Переключаем экраны
+            startScreen.style.opacity = '0';
+            startScreen.style.pointerEvents = 'none';
+            
+            gameOverScreen.style.opacity = '0';
+            gameOverScreen.style.pointerEvents = 'none';
+            
+            setTimeout(() => {
+                gameScreen.style.opacity = '1';
+                gameScreen.style.pointerEvents = 'auto';
+            }, 300);
+            
+            renderGrid();
+        }
+        
+        // Сброс состояния игры
+        function resetGame() {
+            gameState = {
+                grid: Array(GRID_SIZE).fill().map(() => Array(GRID_SIZE).fill(0)),
+                nextEmoji: getRandomEmojiLevel(),
+                score: 0,
+                combo: 1.0,
+                moves: 0,
+                gameOver: false,
+                lastMergeChain: 0
+            };
+            
+            updateUI();
+        }
+        
+        // Генерация случайного уровня эмодзи (больше шансов на низкие уровни)
+        function getRandomEmojiLevel() {
+            const rand = Math.random();
+            if (rand < 0.6) return 1;      // 60% - уровень 1
+            if (rand < 0.85) return 2;     // 25% - уровень 2
+            if (rand < 0.95) return 3;     // 10% - уровень 3
+            return 4;                      // 5% - уровень 4
+        }
+        
+        // Обработка клика по сетке
+        function handleGridClick(e) {
+            if (gameState.gameOver) return;
+            
+            const cell = e.target;
+            if (!cell.classList.contains('cell')) return;
+            
+            handleCellClick(cell);
+        }
+        
+        function handleCellClick(cell) {
+            const row = parseInt(cell.dataset.row);
+            const col = parseInt(cell.dataset.col);
+            
+            // Проверяем, что клетка пустая
+            if (gameState.grid[row][col] !== 0) return;
+            
+            // Создаем анимацию падения смайлика
+            const fallingEmoji = document.createElement('div');
+            fallingEmoji.textContent = EMOJI_LEVELS[gameState.nextEmoji - 1];
+            fallingEmoji.style.cssText = `
+                position: absolute;
+                font-size: 2rem;
+                top: 50px;
+                left: ${(col / GRID_SIZE) * 100 + 6}%;
+                z-index: 100;
+                transform: translateY(-100px);
+                transition: transform 0.4s ease-in;
+            `;
+            document.body.appendChild(fallingEmoji);
+            
+            // Анимация падения
+            setTimeout(() => {
+                fallingEmoji.style.transform = 'translateY(0)';
+            }, 10);
+            
+            // После падения размещаем на поле
+            setTimeout(() => {
+                fallingEmoji.remove();
+                placeEmoji(row, col);
+            }, 400);
+        }
+        
+        // Размещение эмодзи на поле
+        function placeEmoji(row, col) {
+            gameState.grid[row][col] = gameState.nextEmoji;
+            gameState.moves++;
+            
+            // Проверяем слияние
+            const mergeResult = checkAndMerge(row, col);
+            
+            // Если было слияние, увеличиваем комбо
+            if (mergeResult.merged) {
+                gameState.lastMergeChain++;
+                gameState.combo = Math.min(3.0, 1.0 + gameState.lastMergeChain * 0.1);
+            } else {
+                gameState.lastMergeChain = 0;
+                gameState.combo = 1.0;
+            }
+            
+            // Применяем гравитацию
+            applyGravity();
+            
+            // Проверяем слияния после гравитации (цепная реакция)
+            let chainReaction = true;
+            let chainCount = 0;
+            
+            while (chainReaction && chainCount < 5) {
+                chainReaction = false;
+                
+                for (let r = 0; r < GRID_SIZE; r++) {
+                    for (let c = 0; c < GRID_SIZE; c++) {
+                        if (gameState.grid[r][c] !== 0) {
+                            const result = checkAndMerge(r, c);
+                            if (result.merged) {
+                                chainReaction = true;
+                                chainCount++;
+                                
+                                gameState.lastMergeChain++;
+                                gameState.combo = Math.min(3.0, 1.0 + gameState.lastMergeChain * 0.1);
+                            }
                         }
                     }
                 }
-            }
-            
-            if (chainReaction) {
-                applyGravity();
-            }
-        }
-        
-        // Генерируем следующий эмодзи
-        gameState.nextEmoji = getRandomEmojiLevel();
-        
-        // Проверяем конец игры
-        if (isGridFull()) {
-            endGame();
-        }
-        
-        // Обновляем интерфейс
-        updateUI();
-        renderGrid();
-    }
-    
-    // Проверка и слияние эмодзи
-    function checkAndMerge(startRow, startCol) {
-        const emojiLevel = gameState.grid[startRow][startCol];
-        if (emojiLevel === 0 || emojiLevel >= EMOJI_LEVELS.length) return { merged: false };
-        
-        // Проверяем 4 направления
-        const directions = [
-            [-1, 0], // вверх
-            [1, 0],  // вниз
-            [0, -1], // влево
-            [0, 1]   // вправо
-        ];
-        
-        for (const [dr, dc] of directions) {
-            const newRow = startRow + dr;
-            const newCol = startCol + dc;
-            
-            // Проверяем границы и совпадение уровня
-            if (newRow >= 0 && newRow < GRID_SIZE && 
-                newCol >= 0 && newCol < GRID_SIZE &&
-                gameState.grid[newRow][newCol] === emojiLevel) {
                 
-                // Вычисляем новый уровень (не больше максимального)
-                const newLevel = Math.min(emojiLevel + 1, EMOJI_LEVELS.length - 1);
-                
-                // Обновляем поле
-                gameState.grid[startRow][startCol] = newLevel;
-                gameState.grid[newRow][newCol] = 0;
-                
-                // Добавляем очки с учетом комбо
-                const points = POINTS_PER_LEVEL[emojiLevel - 1] * gameState.combo;
-                gameState.score += Math.round(points);
-                
-                // Визуальный эффект слияния
-                const cell1 = document.querySelector(`[data-row="${startRow}"][data-col="${startCol}"]`);
-                const cell2 = document.querySelector(`[data-row="${newRow}"][data-col="${newCol}"]`);
-                
-                if (cell1) cell1.classList.add('merge-effect');
-                if (cell2) cell2.classList.add('merge-effect');
-                
-                setTimeout(() => {
-                    if (cell1) cell1.classList.remove('merge-effect');
-                    if (cell2) cell2.classList.remove('merge-effect');
-                }, 500);
-                
-                return { merged: true, points: Math.round(points) };
-            }
-        }
-        
-        return { merged: false };
-    }
-    
-    // Гравитация - опускаем все эмодзи вниз
-    function applyGravity() {
-        for (let col = 0; col < GRID_SIZE; col++) {
-            // Собираем все непустые клетки в столбце
-            const columnEmojis = [];
-            
-            for (let row = GRID_SIZE - 1; row >= 0; row--) {
-                if (gameState.grid[row][col] !== 0) {
-                    columnEmojis.push(gameState.grid[row][col]);
-                    gameState.grid[row][col] = 0;
+                if (chainReaction) {
+                    applyGravity();
                 }
             }
             
-            // Заполняем столбец снизу вверх
-            for (let i = 0; i < columnEmojis.length; i++) {
-                gameState.grid[GRID_SIZE - 1 - i][col] = columnEmojis[i];
+            // Генерируем следующий эмодзи
+            gameState.nextEmoji = getRandomEmojiLevel();
+            
+            // Проверяем конец игры
+            if (isGridFull()) {
+                endGame();
             }
+            
+            // Обновляем интерфейс
+            updateUI();
+            renderGrid();
         }
-    }
-    
-    // Проверка, заполнена ли сетка
-    function isGridFull() {
-        for (let row = 0; row < GRID_SIZE; row++) {
+        
+        // Проверка и слияние эмодзи
+        function checkAndMerge(startRow, startCol) {
+            const emojiLevel = gameState.grid[startRow][startCol];
+            if (emojiLevel === 0 || emojiLevel >= EMOJI_LEVELS.length) return { merged: false };
+            
+            // Проверяем 4 направления
+            const directions = [
+                [-1, 0], // вверх
+                [1, 0],  // вниз
+                [0, -1], // влево
+                [0, 1]   // вправо
+            ];
+            
+            for (const [dr, dc] of directions) {
+                const newRow = startRow + dr;
+                const newCol = startCol + dc;
+                
+                // Проверяем границы и совпадение уровня
+                if (newRow >= 0 && newRow < GRID_SIZE && 
+                    newCol >= 0 && newCol < GRID_SIZE &&
+                    gameState.grid[newRow][newCol] === emojiLevel) {
+                    
+                    // Вычисляем новый уровень
+                    const newLevel = Math.min(emojiLevel + 1, EMOJI_LEVELS.length - 1);
+                    
+                    // Обновляем поле
+                    gameState.grid[startRow][startCol] = newLevel;
+                    gameState.grid[newRow][newCol] = 0;
+                    
+                    // Добавляем очки с учетом комбо
+                    const points = POINTS_PER_LEVEL[emojiLevel - 1] * gameState.combo;
+                    gameState.score += Math.round(points);
+                    
+                    // Визуальный эффект слияния
+                    const cell1 = document.querySelector(`[data-row="${startRow}"][data-col="${startCol}"]`);
+                    const cell2 = document.querySelector(`[data-row="${newRow}"][data-col="${newCol}"]`);
+                    
+                    if (cell1) cell1.classList.add('merge-effect');
+                    if (cell2) cell2.classList.add('merge-effect');
+                    
+                    setTimeout(() => {
+                        if (cell1) cell1.classList.remove('merge-effect');
+                        if (cell2) cell2.classList.remove('merge-effect');
+                    }, 500);
+                    
+                    return { merged: true, points: Math.round(points) };
+                }
+            }
+            
+            return { merged: false };
+        }
+        
+        // Гравитация - опускаем все эмодзи вниз
+        function applyGravity() {
             for (let col = 0; col < GRID_SIZE; col++) {
-                if (gameState.grid[row][col] === 0) {
-                    return false;
+                const columnEmojis = [];
+                
+                for (let row = GRID_SIZE - 1; row >= 0; row--) {
+                    if (gameState.grid[row][col] !== 0) {
+                        columnEmojis.push(gameState.grid[row][col]);
+                        gameState.grid[row][col] = 0;
+                    }
+                }
+                
+                // Заполняем столбец снизу вверх
+                for (let i = 0; i < columnEmojis.length; i++) {
+                    gameState.grid[GRID_SIZE - 1 - i][col] = columnEmojis[i];
                 }
             }
         }
-        return true;
-    }
-    
-    // Завершение игры
-    function endGame() {
-        gameState.gameOver = true;
         
-        setTimeout(() => {
-            gameScreen.style.opacity = '0';
-            gameScreen.style.pointerEvents = 'none';
-            
-            finalScore.textContent = gameState.score;
-            gameOverScreen.style.opacity = '1';
-            gameOverScreen.style.pointerEvents = 'auto';
-        }, 1000);
-    }
-    
-    // ================= ОТРИСОВКА =================
-    
-    // Обновление интерфейса
-    function updateUI() {
-        scoreValue.textContent = gameState.score;
-        currentScore.textContent = gameState.score;
-        nextEmoji.textContent = EMOJI_LEVELS[gameState.nextEmoji - 1];
-        comboValue.textContent = 'x' + gameState.combo.toFixed(1);
-        movesCount.textContent = gameState.moves;
-    }
-    
-    // Отрисовка сетки
-    function renderGrid() {
-        const cells = document.querySelectorAll('.cell');
-        
-        cells.forEach(cell => {
-            const row = parseInt(cell.dataset.row);
-            const col = parseInt(cell.dataset.col);
-            const emojiLevel = gameState.grid[row][col];
-            
-            // Очищаем содержимое
-            cell.innerHTML = '';
-            cell.className = 'cell';
-            
-            if (emojiLevel === 0) {
-                cell.classList.add('empty');
-            } else {
-                // Создаем элемент с эмодзи
-                const emojiElement = document.createElement('div');
-                emojiElement.className = 'emoji-cell';
-                emojiElement.textContent = EMOJI_LEVELS[emojiLevel - 1];
-                
-                // Увеличиваем размер для более высоких уровней
-                const size = 1.0 + (emojiLevel - 1) * 0.15;
-                emojiElement.style.fontSize = `${size}rem`;
-                
-                // Добавляем свечение для высоких уровней
-                if (emojiLevel >= 4) {
-                    emojiElement.style.textShadow = `0 0 10px rgba(255, 215, 0, 0.7)`;
+        // Проверка, заполнена ли сетка
+        function isGridFull() {
+            for (let row = 0; row < GRID_SIZE; row++) {
+                for (let col = 0; col < GRID_SIZE; col++) {
+                    if (gameState.grid[row][col] === 0) {
+                        return false;
+                    }
                 }
-                if (emojiLevel >= 6) {
-                    emojiElement.style.textShadow = `0 0 15px rgba(255, 0, 0, 0.8)`;
-                }
-                
-                cell.appendChild(emojiElement);
-                cell.classList.add('filled');
             }
-        });
-    }
-    
-    // ================= ФУНКЦИИ ПОДЕЛИТЬСЯ =================
-    
-    function shareTelegram() {
-        const url = encodeURIComponent(window.location.href);
-        const text = encodeURIComponent(`Я набрал ${gameState.score} очков в игре "Смайли"! Попробуй и ты!`);
-        window.open(`https://t.me/share/url?url=${url}&text=${text}`, '_blank');
-    }
-    
-    function shareVK() {
-        const url = encodeURIComponent(window.location.href);
-        const title = encodeURIComponent('Игра "Смайли"');
-        const description = encodeURIComponent(`Я набрал ${gameState.score} очков! Попробуй и ты!`);
-        const image = encodeURIComponent('');
+            return true;
+        }
         
-        window.open(`https://vk.com/share.php?url=${url}&title=${title}&description=${description}&image=${image}`, '_blank');
-    }
-    
-    // ================= ЗАПУСК ИГРЫ =================
-    
-    // Инициализация при загрузке страницы
-    window.addEventListener('DOMContentLoaded', init);
-    
-    // Адаптация размера сетки под экран
-    window.addEventListener('resize', () => {
-        const gridSize = Math.min(window.innerWidth * 0.9, 400);
-        gameGrid.style.width = `${gridSize}px`;
-        gameGrid.style.height = `${gridSize}px`;
-    });
-    
-    // Вызываем resize сразу
-    window.dispatchEvent(new Event('resize'));
-</script>
+        // Завершение игры
+        function endGame() {
+            gameState.gameOver = true;
+            
+            setTimeout(() => {
+                gameScreen.style.opacity = '0';
+                gameScreen.style.pointerEvents = 'none';
+                
+                finalScore.textContent = gameState.score;
+                gameOverScreen.style.opacity = '1';
+                gameOverScreen.style.pointerEvents = 'auto';
+            }, 1000);
+        }
+        
+        // ================= ОТРИСОВКА =================
+        
+        // Обновление интерфейса
+        function updateUI() {
+            scoreValue.textContent = gameState.score;
+            currentScore.textContent = gameState.score;
+            nextEmoji.textContent = EMOJI_LEVELS[gameState.nextEmoji - 1];
+            comboValue.textContent = 'x' + gameState.combo.toFixed(1);
+            movesCount.textContent = gameState.moves;
+        }
+        
+        // Отрисовка сетки
+        function renderGrid() {
+            const cells = document.querySelectorAll('.cell');
+            
+            cells.forEach(cell => {
+                const row = parseInt(cell.dataset.row);
+                const col = parseInt(cell.dataset.col);
+                const emojiLevel = gameState.grid[row][col];
+                
+                cell.innerHTML = '';
+                cell.className = 'cell';
+                
+                if (emojiLevel === 0) {
+                    cell.classList.add('empty');
+                } else {
+                    const emojiElement = document.createElement('div');
+                    emojiElement.className = 'emoji-cell';
+                    emojiElement.textContent = EMOJI_LEVELS[emojiLevel - 1];
+                    
+                    const size = 1.0 + (emojiLevel - 1) * 0.15;
+                    emojiElement.style.fontSize = `${size}rem`;
+                    
+                    if (emojiLevel >= 4) {
+                        emojiElement.style.textShadow = `0 0 10px rgba(255, 215, 0, 0.7)`;
+                    }
+                    if (emojiLevel >= 6) {
+                        emojiElement.style.textShadow = `0 0 15px rgba(255, 0, 0, 0.8)`;
+                    }
+                    
+                    cell.appendChild(emojiElement);
+                    cell.classList.add('filled');
+                }
+            });
+        }
+        
+        // ================= ФУНКЦИИ ПОДЕЛИТЬСЯ =================
+        
+        function shareTelegram() {
+            const url = encodeURIComponent(window.location.href);
+            const text = encodeURIComponent(`Я набрал ${gameState.score} очков в игре "Смайли"! Попробуй и ты!`);
+            window.open(`https://t.me/share/url?url=${url}&text=${text}`, '_blank');
+        }
+        
+        function shareVK() {
+            const url = encodeURIComponent(window.location.href);
+            const title = encodeURIComponent('Игра "Смайли"');
+            const description = encodeURIComponent(`Я набрал ${gameState.score} очков! Попробуй и ты!`);
+            window.open(`https://vk.com/share.php?url=${url}&title=${title}&description=${description}`, '_blank');
+        }
+        
+        // ================= ЗАПУСК ИГРЫ =================
+        
+        // Инициализация при загрузке страницы
+        window.addEventListener('DOMContentLoaded', init);
+        
+        // Адаптация размера сетки под экран
+        window.addEventListener('resize', () => {
+            const gridSize = Math.min(window.innerWidth * 0.9, 400);
+            gameGrid.style.width = `${gridSize}px`;
+            gameGrid.style.height = `${gridSize}px`;
+        });
+        
+        // Вызываем resize сразу
+        window.dispatchEvent(new Event('resize'));
+    </script>
+</body>
+</html>
