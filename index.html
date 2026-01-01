@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Смайли</title>
+    <title>Emoji</title>
     <style>
         * {
             margin: 0;
@@ -203,6 +203,18 @@
             border: 1px solid rgba(255, 255, 255, 0.2);
             box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
         }
+
+        .game-over-treshold-line {
+            width: 100%;
+            height: 100px;
+            background: red;
+            background: #FF000007;
+            z-index: 999;
+            border-bottom: 2px solid #FF0000;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
         
         .final-score {
             font-size: 3.5rem;
@@ -246,10 +258,9 @@
 <body>
     <div id="app">
         <div class="screen start-screen" id="startScreen">
-            <h1 class="title">СМАЙЛИ</h1>
+            <h1 class="title">EMOJI</h1>
             <p class="subtitle">Бросай, катай, собирай комбо!</p>
             <button class="btn" id="startBtn">ИГРАТЬ</button>
-            <div class="tap-hint" id="tapHint">↑ ТАПАЙ СВЕРХУ ↑</div>
         </div>
         
         <div class="screen game-screen" id="gameScreen">
@@ -265,6 +276,8 @@
             </div>
             
             <div id="gameContainer">
+                <div class="game-over-treshold-line"></div>
+                <div class="tap-hint" id="tapHint">↑ ТАПАЙ СВЕРХУ ↑</div>
                 <div class="floor"></div>
             </div>
         </div>
@@ -280,9 +293,10 @@
     </div>
 
     <script>
-        const EMOJI_LEVELS = ["😊", "🌚", "🤢", "🤩", "🤑", "🤯", "😨"];
-        const EMOJI_SIZES = [35, 55, 80, 115, 160, 220, 300];
-        const POINTS_PER_LEVEL = [10, 40, 120, 350, 1000, 3000, 9000];
+        const EMOJI_LEVELS = ["😊", "🌚", "🤗", "🤩", "🤑", "🤯", "😨", "😜", "🤫", "🥴", "😎"];
+        const EMOJI_SIZES = [30, 40, 50, 65, 80, 120, 160, 200, 215, 220, 235];
+        const EMOJI_GRAMS = [100, 130, 160, 200, 250, 400, 600, 700, 800, 900, 1000];
+        const POINTS_PER_LEVEL = [5, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100];
         
         let SCREEN_WIDTH = 400;
         let SCREEN_HEIGHT = 800;
@@ -291,12 +305,14 @@
         let GAME_HEIGHT = 720;
         let FLOOR_Y = GAME_HEIGHT - FLOOR_HEIGHT;
         let GAME_OVER_THRESHOLD = 5;
+        let ALREADY_SPAWNED_NEW_EMOJI = false;
         
         class Emoji {
             constructor(x, y, level) {
                 this.id = Date.now() + Math.random();
                 this.level = level;
                 this.size = EMOJI_SIZES[level - 1];
+                this.weight = EMOJI_GRAMS[level - 1];
                 this.x = x - this.size/2;
                 this.y = y - this.size/2;
                 this.vx = 0;
@@ -454,39 +470,54 @@
         
         function clearGameContainer() {
             const floor = gameContainer.querySelector('.floor');
+            const tresholdline = gameContainer.querySelector('.game-over-treshold-line');
+            const taphint = gameContainer.querySelector('.tap-hint');
             gameContainer.innerHTML = '';
+            if (tresholdline) gameContainer.appendChild(tresholdline);
             if (floor) gameContainer.appendChild(floor);
+            if (taphint) gameContainer.appendChild(taphint);
         }
         
         function getRandomEmojiLevel() {
             const r = Math.random();
-            if (r < 0.5) return 1;
-            if (r < 0.75) return 2;
-            if (r < 0.9) return 3;
-            if (r < 0.97) return 4;
-            if (r < 0.99) return 5;
-            return 6;
+            if (r < 0.47) return 1;
+            if (r < 0.745) return 2;
+            if (r < 0.85) return 3;
+            if (r < 0.95) return 4;
+            return 5;
         }
         
         function handleGameTap(e) {
-            if (gameState.gameOver || !gameState.physicsRunning) return;
+            if (gameState.gameOver || !gameState.physicsRunning || ALREADY_SPAWNED_NEW_EMOJI) return;
             
             const rect = gameContainer.getBoundingClientRect();
             const x = Math.max(50, Math.min(e.clientX - rect.left, SCREEN_WIDTH - 50));
             
-            createEmojiAt(x, 100);
+            createEmojiAt(x, 0);
+        
+            if (gameState.moves >= 1 && gameContainer.querySelector('.tap-hint')) gameContainer.removeChild(gameContainer.querySelector('.tap-hint'))
+            ALREADY_SPAWNED_NEW_EMOJI = true;
+            setTimeout(() => {
+                ALREADY_SPAWNED_NEW_EMOJI = false;
+            }, 200);
             gameState.moves++;
         }
         
         function handleGameTouch(e) {
             e.preventDefault();
-            if (gameState.gameOver || !gameState.physicsRunning) return;
+            if (gameState.gameOver || !gameState.physicsRunning || ALREADY_SPAWNED_NEW_EMOJI) return;
             
             const touch = e.touches[0];
             const rect = gameContainer.getBoundingClientRect();
             const x = Math.max(50, Math.min(touch.clientX - rect.left, SCREEN_WIDTH - 50));
             
-            createEmojiAt(x, 100);
+            createEmojiAt(x, 0);
+        
+            if (gameState.moves > 0 && gameContainer.querySelector('.tap-hint')) gameContainer.removeChild(gameContainer.querySelector('.tap-hint'))
+            ALREADY_SPAWNED_NEW_EMOJI = true;
+            setTimeout(() => {
+                ALREADY_SPAWNED_NEW_EMOJI = false;
+            }, 250);
             gameState.moves++;
         }
         
@@ -524,15 +555,15 @@
         }
         
         function updatePhysics(deltaTime) {
-            const activeEmojis = gameState.emojis.filter(e => !e.merged && !e.settled);
+            const activeEmojis = gameState.emojis.filter(e => !e.merged);
             
             for (const emoji of activeEmojis) {
                 emoji.vy += gameState.gravity * deltaTime;
                 emoji.vx *= Math.pow(gameState.friction, deltaTime);
                 emoji.rotation += emoji.rotationSpeed * deltaTime;
                 
-                let newX = emoji.x + emoji.vx * deltaTime;
-                let newY = emoji.y + emoji.vy * deltaTime;
+                let newX = emoji.x + emoji.vx * (deltaTime + emoji.weight / 100);
+                let newY = emoji.y + emoji.vy * (deltaTime + emoji.weight / 100);
                 
                 const bounds = emoji.getBounds();
                 
@@ -576,81 +607,81 @@
         }
         
         function resolveCollisionsMultiplePasses(passes) {
-            const floorY = FLOOR_Y;
-    
-        for (let pass = 0; pass < passes; pass++) {
-            const activeEmojis = gameState.emojis.filter(e => !e.merged);
-            activeEmojis.forEach(e => e.wasMoved = false);
+    const floorY = FLOOR_Y;
 
-            for (let i = 0; i < activeEmojis.length; i++) {
-                const a = activeEmojis[i];
-                for (let j = i + 1; j < activeEmojis.length; j++) {
-                    const b = activeEmojis[j];
+    for (let pass = 0; pass < passes; pass++) {
+        const activeEmojis = gameState.emojis.filter(e => !e.merged);
+        activeEmojis.forEach(e => e.wasMoved = false);
 
-                    const aBounds = a.getBounds();
-                    const bBounds = b.getBounds();
+        for (let i = 0; i < activeEmojis.length; i++) {
+            const a = activeEmojis[i];
+            const ra = a.size / 2; // Radius of A
+            const ax = a.centerX();
+            const ay = a.centerY();
 
-                // AABB Collision Check
-                    const isColliding = aBounds.left < bBounds.right &&
-                                        aBounds.right > bBounds.left &&
-                                        aBounds.top < bBounds.bottom &&
-                                        aBounds.bottom > bBounds.top;
+            for (let j = i + 1; j < activeEmojis.length; j++) {
+                const b = activeEmojis[j];
+                const rb = b.size / 2; // Radius of B
+                const bx = b.centerX();
+                const by = b.centerY();
 
-                if (isColliding) {
-                        const overlapX = Math.min(aBounds.right - bBounds.left, bBounds.right - aBounds.left);
-                        const overlapY = Math.min(aBounds.bottom - bBounds.top, bBounds.bottom - aBounds.top);
+                // 1. CIRCLE COLLISION CHECK
+                const dx = ax - bx;
+                const dy = ay - by;
+                const distanceSq = dx * dx + dy * dy;
+                const minDistance = ra + rb;
 
-                    // 1. POSITION RESOLUTION (Push them apart)
-                        if (overlapX < overlapY) {
-                            const dir = a.centerX() < b.centerX() ? -1 : 1;
-                            a.x += (overlapX / 2) * dir;
-                            b.x -= (overlapX / 2) * dir;
-                        } else {
-                            const dir = a.centerY() < b.centerY() ? -1 : 1;
-                            a.y += (overlapY / 2) * dir;
-                            b.y -= (overlapY / 2) * dir;
-                        }
+                if (distanceSq < minDistance * minDistance) {
+                    const distance = Math.sqrt(distanceSq) || 0.1;
+                    const overlap = minDistance - distance;
+                    
+                    // Normal vector (direction from B to A)
+                    const nx = dx / distance;
+                    const ny = dy / distance;
 
-                    // 2. IMMEDIATE BOUNDARY CLAMPING (The "No Floor" Fix)
-                    // Ensure resolution didn't push anyone through the floor or walls
-                        [a, b].forEach(emoji => {
-                            // Floor check
-                            if (emoji.y + emoji.size > floorY) {
+                    // 2. POSITION RESOLUTION (Push them apart along the normal)
+                    const separationX = nx * (overlap / 2);
+                    const separationY = ny * (overlap / 2);
+
+                    a.x += separationX;
+                    a.y += separationY;
+                    b.x -= separationX;
+                    b.y -= separationY;
+
+                    // 3. IMMEDIATE BOUNDARY CLAMPING
+                    [a, b].forEach(emoji => {
+                        const radius = emoji.size / 2;
+                        // Floor check
+                        if (emoji.y + emoji.size > floorY) {
                             emoji.y = floorY - emoji.size;
-                            }
-                            // Wall checks
-                            if (emoji.x < 0) emoji.x = 0;
-                            if (emoji.x + emoji.size > SCREEN_WIDTH) emoji.x = SCREEN_WIDTH - emoji.size;
-                        
-                            emoji.updatePosition();
-                        });
+                        }
+                        // Wall checks
+                        if (emoji.x < 0) emoji.x = 0;
+                        if (emoji.x + emoji.size > SCREEN_WIDTH) emoji.x = SCREEN_WIDTH - emoji.size;
 
-                        // 3. IMPULSE RESOLUTION (Elasticity/Bounce)
-                        const dx = a.centerX() - b.centerX();
-                        const dy = a.centerY() - b.centerY();
-                        const distance = Math.sqrt(dx * dx + dy * dy) || 0.1;
-                        const nx = dx / distance;
-                        const ny = dy / distance;
+                        emoji.updatePosition();
+                    });
 
-                        const relativeVx = b.vx - a.vx;
-                        const relativeVy = b.vy - a.vy;
-                        const velocityAlongNormal = relativeVx * nx + relativeVy * ny;
+                    // 4. IMPULSE RESOLUTION (Elasticity/Bounce)
+                    const relativeVx = b.vx - a.vx;
+                    const relativeVy = b.vy - a.vy;
+                    
+                    // Dot product of relative velocity and normal
+                    const velocityAlongNormal = relativeVx * nx + relativeVy * ny;
 
-                        if (velocityAlongNormal < 0) {
-                            const impulse = -velocityAlongNormal * 0.5; 
-                            a.vx -= impulse * nx;
-                            a.vy -= impulse * ny;
-                            b.vx += impulse * nx;
-                            b.vy += impulse * ny;
-                       }
-    
-                        //a.wasMoved = true;
-                        //b.wasMoved = true;
+                    // Only resolve if they are moving towards each other
+                    if (velocityAlongNormal < 0) {
+                        const impulse = -velocityAlongNormal * 0.5; // 0.5 is elasticity
+                        a.vx -= impulse * nx;
+                        a.vy -= impulse * ny;
+                        b.vx += impulse * nx;
+                        b.vy += impulse * ny;
                     }
                 }
             }
         }
-        }
+    }
+}
         
         function checkStability(deltaTime) {
             for (const emoji of gameState.emojis) {
@@ -686,24 +717,30 @@
                 for (let j = i + 1; j < emojis.length; j++) {
                     const a = emojis[i];
                     const b = emojis[j];
+                    const ra = a.size / 2; // Radius of A
+                    const ax = a.centerX();
+                    const ay = a.centerY();
                     
-                    if (a.level === b.level && a.level < 7) {
-                        const aBounds = a.getBounds();
-                        const bBounds = b.getBounds();
+                    if (a.level === b.level && a.level < 11) {
+                        const rb = b.size / 2; // Radius of B
+                        const bx = b.centerX();
+                        const by = b.centerY();
+
+                        // 1. CIRCLE COLLISION CHECK
+                        const dx = ax - bx;
+                        const dy = ay - by;
+                        const distanceSq = dx * dx + dy * dy;
+                        const minDistance = ra + rb;
                         
-                        // Слияние при касании
-                        const touching = 
-                            aBounds.left < bBounds.right + 1 &&
-                            aBounds.right > bBounds.left - 1 &&
-                            aBounds.top < bBounds.bottom + 1 &&
-                            aBounds.bottom > bBounds.top - 1;
-                        
-                        if (touching) {
+                        if (distanceSq < minDistance * minDistance) {
                             mergeEmojis(a, b);
                             mergedSomething = true;
                             break;
                         }
                     }
+                    else if (a.level === b.level && a.level === 11)
+                        popEmojis(a, b);
+                        
                 }
                 if (mergedSomething) break;
             }
@@ -713,39 +750,61 @@
             }
         }
         
+        function popEmojis(a, b) {
+            a.markForMerge();
+            b.markForMerge();
+
+            const points = 15000;
+            gameState.score += points;
+            
+            a.remove();
+            b.remove();
+            
+            updateUI();
+        }
+
         function mergeEmojis(a, b) {
             a.markForMerge();
             b.markForMerge();
-            
-            const newLevel = Math.min(a.level + 1, 7);
+            vels = {
+                a: {
+                    vx: a.vx,
+                    vy: a.vy,
+                    rot: a.rotationSpeed
+                },
+                b: {
+                    vx: b.vx,
+                    vy: b.vy,
+                    rot: b.rotationSpeed
+                },
+            }
+
+            const newLevel = Math.min(a.level + 1, 11);
             const points = POINTS_PER_LEVEL[a.level - 1];
             gameState.score += points;
             
-            setTimeout(() => {
-                a.remove();
-                b.remove();
-                
-                const centerX = (a.x + b.x + a.size) / 2;
-                const centerY = (a.y + b.y + a.size) / 2;
-                const newEmoji = new Emoji(centerX, centerY, newLevel);
-                
-                newEmoji.settled = true;
-                newEmoji.onFloor = a.onFloor || b.onFloor;
-                newEmoji.vx = 0;
-                newEmoji.vy = 0;
-                newEmoji.rotationSpeed = 0;
-                
-                if (newEmoji.onFloor) {
-                    newEmoji.y = FLOOR_Y - newEmoji.size;
-                }
-                
-                gameState.emojis.push(newEmoji);
-                gameState.emojis = gameState.emojis.filter(e => e !== a && e !== b);
-                
-                updateUI();
-                for (i = 0; i < 3; i++) fixCollisionsForNewEmoji(newEmoji);
-                
-            }, 500);
+            a.remove();
+            b.remove();
+            
+            const centerX = (a.x + b.x + a.size) / 2;
+            const centerY = (a.y + b.y + a.size) / 2;
+            const newEmoji = new Emoji(centerX, centerY, newLevel);
+            
+            newEmoji.settled = true;
+            newEmoji.onFloor = a.onFloor || b.onFloor;
+            newEmoji.vx = (vels.a.vx + vels.b.vx) / 2;
+            newEmoji.vy = (vels.a.vy + vels.b.vy) / 2;
+            newEmoji.rotationSpeed = (vels.a.rot + vels.b.rot) / 2;
+            
+            if (newEmoji.onFloor) {
+                newEmoji.y = FLOOR_Y - newEmoji.size;
+            }
+            
+            gameState.emojis.push(newEmoji);
+            gameState.emojis = gameState.emojis.filter(e => e !== a && e !== b);
+            
+            updateUI();
+            for (i = 0; i < 3; i++) fixCollisionsForNewEmoji(newEmoji);
         }
         
         function fixCollisionsForNewEmoji(newEmoji) {
@@ -791,7 +850,7 @@
         }
         
         function checkGameOver() {
-            if (gameState.gameOver || gameState.moves < 5) return;
+            if (gameState.gameOver) return;
             
             const topLimit = HEADER_HEIGHT + GAME_OVER_THRESHOLD;
             
@@ -799,7 +858,21 @@
                 if (emoji.merged || !emoji.settled) continue;
                 
                 if (emoji.y < topLimit) {
-                    endGame();
+                    setTimeout(() => 
+                    {
+                        if (gameState.gameOver) return;
+
+                        const topLimit = HEADER_HEIGHT + GAME_OVER_THRESHOLD;
+
+                        for (const emoji of gameState.emojis) {
+                            if (emoji.merged || !emoji.settled) continue;
+    
+                            if (emoji.y < topLimit) {
+                                endGame();
+                                return;
+                            }
+                        }
+                    }, 750);
                     return;
                 }
             }
